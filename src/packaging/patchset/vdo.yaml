@@ -33,10 +33,11 @@ tarballs:
             - flush.h
             - funnel-workqueue.c
             - funnel-workqueue.h
+            - hash-map.c
+            - hash-map.h	    
             - histogram.c
             - histogram.h
-            - int-map.c
-            - int-map.h
+            - int-map.h	    
             - io-submitter.c
             - io-submitter.h
             - logical-zone.c
@@ -47,8 +48,6 @@ tarballs:
             - packer.h
             - physical-zone.c
             - physical-zone.h
-            - pointer-map.c
-            - pointer-map.h
             - pool-sysfs.c
             - pool-sysfs.h
             - pool-sysfs-stats.c

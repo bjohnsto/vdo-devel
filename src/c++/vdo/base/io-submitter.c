@@ -36,7 +36,7 @@ struct bio_queue_data {
 #ifdef __KERNEL__
 	struct blk_plug plug;
 #endif /* __KERNEL__ */
-	struct int_map *map;
+	struct vdo_hash_map *map;
 	struct mutex lock;
 	unsigned int queue_number;
 };
@@ -207,7 +207,7 @@ static void process_data_vio_io(struct vdo_completion *completion)
  *
  * Return: the vio to merge to, NULL if no merging is possible.
  */
-static struct vio *get_mergeable_locked(struct int_map *map, struct vio *vio, bool back_merge)
+static struct vio *get_mergeable_locked(struct vdo_hash_map *map, struct vio *vio, bool back_merge)
 {
 	struct bio *bio = vio->bio;
 	sector_t merge_sector = get_bio_sector(bio);
@@ -240,7 +240,7 @@ static struct vio *get_mergeable_locked(struct int_map *map, struct vio *vio, bo
 	return ((get_bio_sector(vio_merge->bios_merged.head) == merge_sector) ? vio_merge : NULL);
 }
 
-static int map_merged_vio(struct int_map *bio_map, struct vio *vio)
+static int map_merged_vio(struct vdo_hash_map *bio_map, struct vio *vio)
 {
 	int result;
 
@@ -251,14 +251,14 @@ static int map_merged_vio(struct int_map *bio_map, struct vio *vio)
 	return vdo_int_map_put(bio_map, get_bio_sector(vio->bios_merged.tail), vio, true, NULL);
 }
 
-static int merge_to_prev_tail(struct int_map *bio_map, struct vio *vio, struct vio *prev_vio)
+static int merge_to_prev_tail(struct vdo_hash_map *bio_map, struct vio *vio, struct vio *prev_vio)
 {
 	vdo_int_map_remove(bio_map, get_bio_sector(prev_vio->bios_merged.tail));
 	bio_list_merge(&prev_vio->bios_merged, &vio->bios_merged);
 	return map_merged_vio(bio_map, prev_vio);
 }
 
-static int merge_to_next_head(struct int_map *bio_map, struct vio *vio, struct vio *next_vio)
+static int merge_to_next_head(struct vdo_hash_map *bio_map, struct vio *vio, struct vio *next_vio)
 {
 	/*
 	 * Handle "next merge" and "gap fill" cases the same way so as to reorder bios in a way

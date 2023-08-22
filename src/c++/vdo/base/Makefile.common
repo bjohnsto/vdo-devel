@@ -18,12 +18,11 @@ BASE_OBJS :=     			\
         dm-vdo-target.o                 \
 	encodings.o			\
 	flush.o				\
-	int-map.o			\
+	hash-map.o			\
 	io-submitter.o			\
 	logical-zone.o			\
 	packer.o			\
 	physical-zone.o			\
-	pointer-map.o			\
 	pool-sysfs.o			\
 	pool-sysfs-stats.o		\
 	priority-table.o		\
