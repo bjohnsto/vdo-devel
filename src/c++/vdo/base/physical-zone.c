@@ -344,7 +344,7 @@ static int initialize_zone(struct vdo *vdo, struct physical_zones *zones)
 
 	result = make_pbn_lock_pool(LOCK_POOL_CAPACITY, &zone->lock_pool);
 	if (result != VDO_SUCCESS) {
-		vdo_free_int_map(zone->pbn_operations);
+		vdo_hash_map_free(zone->pbn_operations);
 		return result;
 	}
 
@@ -355,7 +355,7 @@ static int initialize_zone(struct vdo *vdo, struct physical_zones *zones)
 	result = vdo_make_default_thread(vdo, zone->thread_id);
 	if (result != VDO_SUCCESS) {
 		free_pbn_lock_pool(uds_forget(zone->lock_pool));
-		vdo_free_int_map(zone->pbn_operations);
+		vdo_hash_map_free(zone->pbn_operations);
 		return result;
 	}
 	return result;
@@ -412,7 +412,7 @@ void vdo_free_physical_zones(struct physical_zones *zones)
 		struct physical_zone *zone = &zones->zones[index];
 
 		free_pbn_lock_pool(uds_forget(zone->lock_pool));
-		vdo_free_int_map(uds_forget(zone->pbn_operations));
+		vdo_hash_map_free(uds_forget(zone->pbn_operations));
 	}
 
 	uds_free(zones);

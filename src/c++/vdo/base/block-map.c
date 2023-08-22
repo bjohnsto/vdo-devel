@@ -1354,7 +1354,7 @@ int vdo_invalidate_page_cache(struct vdo_page_cache *cache)
 	}
 
 	/* Reset the page map by re-allocating it. */
-	vdo_free_int_map(uds_forget(cache->page_map));
+	vdo_hash_map_free(uds_forget(cache->page_map));
 	return vdo_hash_map_create(HASH_MAP_TYPE_INT, cache->page_count,
 				   &cache->page_map);
 }
@@ -2887,7 +2887,7 @@ static void uninitialize_block_map_zone(struct block_map_zone *zone)
 
 	uds_free(uds_forget(zone->dirty_lists));
 	free_vio_pool(uds_forget(zone->vio_pool));
-	vdo_free_int_map(uds_forget(zone->loading_pages));
+	vdo_hash_map_free(uds_forget(zone->loading_pages));
 	if (cache->infos != NULL) {
 		struct page_info *info;
 
@@ -2895,7 +2895,7 @@ static void uninitialize_block_map_zone(struct block_map_zone *zone)
 			free_vio(uds_forget(info->vio));
 	}
 
-	vdo_free_int_map(uds_forget(cache->page_map));
+	vdo_hash_map_free(uds_forget(cache->page_map));
 	uds_free(uds_forget(cache->infos));
 	uds_free(uds_forget(cache->pages));
 }
