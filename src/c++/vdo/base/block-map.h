@@ -16,7 +16,7 @@
 #include "admin-state.h"
 #include "completion.h"
 #include "encodings.h"
-#include "int-map.h"
+#include "hash-map.h"
 #include "statistics.h"
 #include "types.h"
 #include "vio.h"
