@@ -176,7 +176,7 @@ static void initialize(page_count_t cacheSize, sequence_number_t maximumAge)
   };
 
   initializeVDOTest(&parameters);
-  VDO_ASSERT_SUCCESS(vdo_make_int_map(cacheSize, 0, &pageMap));
+  VDO_ASSERT_SUCCESS(vdo_make_int_map(cacheSize, &pageMap));
   zone = &vdo->block_map->zones[0];
   cache = &zone->page_cache;
 
