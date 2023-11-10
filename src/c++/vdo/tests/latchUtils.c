@@ -21,12 +21,12 @@
 #include "vdoAsserts.h"
 #include "vdoTestBase.h"
 
-static bool              initialized = false;
-static struct int_map   *latchedVIOs = NULL;
-static struct list_head  latches;
-static WaitCondition    *waitCondition;
-static LatchHook        *latchAttemptHook;
-static LatchHook        *latchedVIOHook;
+static bool                  initialized = false;
+static struct vdo_hash_map  *latchedVIOs = NULL;
+static struct list_head      latches;
+static WaitCondition        *waitCondition;
+static LatchHook            *latchAttemptHook;
+static LatchHook            *latchedVIOHook;
 
 /*
  * We need to be able to pass the LatchExaminer into a locked method via the

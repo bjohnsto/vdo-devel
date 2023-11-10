@@ -27,8 +27,8 @@ typedef struct {
  * objects.
  **/
 struct intIntMap {
-  struct int_map   *map;
-  struct list_head  holders;
+  struct vdo_hash_map  *map;
+  struct list_head      holders;
 };
 
 /**********************************************************************/

@@ -60,7 +60,7 @@ static uint32_t hashKey(const void *key)
 /**********************************************************************/
 static void testEmptyMap(void)
 {
-  struct pointer_map *map;
+  struct vdo_hash_map *map;
   UDS_ASSERT_SUCCESS(vdo_make_pointer_map(0, 0, compareKeys, hashKey, &map));
 
   // Check the properties of the empty map.
@@ -78,9 +78,9 @@ static void testEmptyMap(void)
 }
 
 /**********************************************************************/
-static void verifySingletonMap(struct pointer_map *map,
-                               const char         *key,
-                               void               *value)
+static void verifySingletonMap(struct vdo_hash_map *map,
+                               char                *key,
+                               void                *value)
 {
   CU_ASSERT_EQUAL(1, vdo_pointer_map_size(map));
   CU_ASSERT_PTR_EQUAL(value, vdo_pointer_map_get(map, key));
@@ -89,11 +89,11 @@ static void verifySingletonMap(struct pointer_map *map,
 /**********************************************************************/
 static void testNullKey(void)
 {
-  struct pointer_map *map;
+  struct vdo_hash_map *map;
   UDS_ASSERT_SUCCESS(vdo_make_pointer_map(1, 0, compareKeys, hashKey, &map));
 
-  const char *nullKey    = NULL;
-  const char *emptyKey   = "";
+  char       *nullKey    = NULL;
+  char       *emptyKey   = "";
   void       *nullValue  = "null string";
   void       *emptyValue = "empty string";
 
@@ -155,7 +155,7 @@ static void testNullKey(void)
 /**********************************************************************/
 static void testSingletonMap(void)
 {
-  struct pointer_map *map;
+  struct vdo_hash_map *map;
   UDS_ASSERT_SUCCESS(vdo_make_pointer_map(1, 0, compareKeys, hashKey, &map));
 
   // Add one entry with a randomly-selected key.
@@ -247,7 +247,7 @@ static char *toKeyString(unsigned int key)
 /**********************************************************************/
 static void test16BitMap(void)
 {
-  struct pointer_map *map;
+  struct vdo_hash_map *map;
   UDS_ASSERT_SUCCESS(vdo_make_pointer_map(U16_MAX + 1, 0, compareKeys, hashKey,
                                           &map));
 
@@ -319,7 +319,7 @@ static void testSteadyState(void)
 {
   static size_t SIZE = 10 * 1000;
 
-  struct pointer_map *map;
+  struct vdo_hash_map *map;
   UDS_ASSERT_SUCCESS(vdo_make_pointer_map(0, 0, compareKeys, hashKey, &map));
 
   // Fill the map with trivial mappings of { "[0]" -> "[0]" }, etc

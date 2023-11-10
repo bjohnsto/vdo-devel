@@ -64,7 +64,7 @@ typedef struct {
   bool                      indexOpen;
   atomic64_t                requestCount;
   struct list_head          completionEnqueueHooks;
-  struct int_map           *completionEnqueueHooksMap;
+  struct vdo_hash_map      *completionEnqueueHooksMap;
   CompletionHook           *completionEnqueueHooksCache[MAX_HOOK_COUNT];
   uint8_t                   completionEnqueueHookCount;
   bool                      completionEnqueueHooksCacheValid;
@@ -203,7 +203,7 @@ void initializeAsyncLayer(PhysicalLayer *syncLayer)
   AsyncLayer *asyncLayer;
   VDO_ASSERT_SUCCESS(uds_allocate(1, AsyncLayer, __func__, &asyncLayer));
   VDO_ASSERT_SUCCESS(vdo_make_int_map(0,
-                                      0,
+				      0,
                                       &asyncLayer->completionEnqueueHooksMap));
   VDO_ASSERT_SUCCESS(uds_init_mutex(&asyncLayer->mutex));
   VDO_ASSERT_SUCCESS(uds_init_cond(&asyncLayer->condition));

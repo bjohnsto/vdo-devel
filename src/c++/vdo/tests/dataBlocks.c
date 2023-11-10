@@ -22,11 +22,11 @@ enum {
   INITIAL_BLOCKS    = 64,
 };
 
-static DataFormatter  *dataFormatter;
-static struct int_map *dataBlocks  = NULL;
-static char           *buffer;
-static block_count_t   maxIndex    = 0;
-static bool            initialized = false;
+static DataFormatter        *dataFormatter;
+static struct vdo_hash_map  *dataBlocks  = NULL;
+static char                 *buffer;
+static block_count_t         maxIndex    = 0;
+static bool                  initialized = false;
 
 /**
  * Fill a block with an 8 byte value.

@@ -24,9 +24,9 @@ typedef struct {
   vdo_action *errorHandler;
 } SavedActions;
 
-static struct int_map          *wrapMap    = NULL;
-static struct int_map          *enqueueMap = NULL;
-static struct mutex             mutex;
+static struct vdo_hash_map  *wrapMap    = NULL;
+static struct vdo_hash_map  *enqueueMap = NULL;
+static struct mutex          mutex;
 
 /**
  * Implements TearDownAction

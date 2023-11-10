@@ -24,11 +24,11 @@ typedef enum {
   LATCH_WRITE,
 } LatchOperation;
 
-static struct vio      *LATCH_DESIRED = (struct vio *) 0xffffffffffffffff;
-static LatchOperation   latchOperation;
-static struct int_map  *latchedVIOs;
-static struct mutex     mutex;
-static struct cond_var  condition;
+static struct vio           *LATCH_DESIRED = (struct vio *) 0xffffffffffffffff;
+static LatchOperation        latchOperation;
+static struct vdo_hash_map  *latchedVIOs;
+static struct mutex          mutex;
+static struct cond_var       condition;
 
 /**********************************************************************/
 void initializeRecoveryModeTest(const TestParameters *testParameters)

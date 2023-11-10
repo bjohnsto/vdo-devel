@@ -35,7 +35,7 @@ typedef enum {
 
 static bool                     getRequested;
 static bool                     readOnly;
-static struct int_map          *pageMap;
+static struct vdo_hash_map     *pageMap;
 static physical_block_number_t  maxPBN;
 static physical_block_number_t  firstPBN;
 static sequence_number_t        period;

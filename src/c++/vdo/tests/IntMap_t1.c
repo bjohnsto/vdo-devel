@@ -20,7 +20,7 @@
 /**********************************************************************/
 static void testEmptyMap(void)
 {
-  struct int_map *map;
+  struct vdo_hash_map *map;
   UDS_ASSERT_SUCCESS(vdo_make_int_map(0, 0, &map));
 
   // Check the properties of the empty map.
@@ -38,7 +38,8 @@ static void testEmptyMap(void)
 }
 
 /**********************************************************************/
-static void verifySingletonMap(struct int_map *map, uint64_t key, void *value)
+static void verifySingletonMap(struct vdo_hash_map *map, uint64_t key,
+			       void *value)
 {
   CU_ASSERT_EQUAL(1, vdo_int_map_size(map));
   CU_ASSERT_PTR_EQUAL(value, vdo_int_map_get(map, key));
@@ -47,7 +48,7 @@ static void verifySingletonMap(struct int_map *map, uint64_t key, void *value)
 /**********************************************************************/
 static void testSingletonMap(void)
 {
-  struct int_map *map;
+  struct vdo_hash_map *map;
   UDS_ASSERT_SUCCESS(vdo_make_int_map(1, 0, &map));
 
   // Add one entry with a randomly-selected key.
@@ -112,7 +113,7 @@ static void testSingletonMap(void)
 /**********************************************************************/
 static void test16BitMap(void)
 {
-  struct int_map *map;
+  struct vdo_hash_map *map;
   UDS_ASSERT_SUCCESS(vdo_make_int_map(U16_MAX + 1, 0, &map));
 
   uint16_t *values;
@@ -173,7 +174,7 @@ static void testSteadyState(void)
 {
   static size_t SIZE = 10 * 1000;
 
-  struct int_map *map;
+  struct vdo_hash_map *map;
   UDS_ASSERT_SUCCESS(vdo_make_int_map(0, 0, &map));
 
   // Fill the map with mappings of { 0 -> 1 }, { 1 -> 2 }, etc.
