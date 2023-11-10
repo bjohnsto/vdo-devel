@@ -40,7 +40,8 @@ int makeIntIntMap(size_t initialCapacity, IntIntMap **mapPtr)
     return result;
   }
 
-  result = vdo_make_int_map(initialCapacity, &intIntMap->map);
+  result = vdo_hash_map_create(HASH_MAP_TYPE_INT, initialCapacity,
+			       &intIntMap->map);
   if (result != VDO_SUCCESS) {
     uds_free(intIntMap);
     return result;
