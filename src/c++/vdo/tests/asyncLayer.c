@@ -177,7 +177,7 @@ void destroyAsyncLayer(void)
   case LAYER_INITIALIZED:
     uds_destroy_cond(&asyncLayer->condition);
     uds_destroy_mutex(&asyncLayer->mutex);
-    vdo_free_int_map(uds_forget(asyncLayer->completionEnqueueHooksMap));
+    vdo_hash_map_free(uds_forget(asyncLayer->completionEnqueueHooksMap));
     break;
 
   default:

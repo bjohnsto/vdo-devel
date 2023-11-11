@@ -60,7 +60,7 @@ void freeIntIntMap(IntIntMap **mapPtr)
     return;
   }
 
-  vdo_free_int_map(uds_forget(intIntMap->map));
+  vdo_hash_map_free(uds_forget(intIntMap->map));
 
   IntHolder *holder, *tmp;
   list_for_each_entry_safe_reverse(holder, tmp, &intIntMap->holders, node) {

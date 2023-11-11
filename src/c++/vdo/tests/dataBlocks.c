@@ -85,7 +85,7 @@ void tearDownDataBlocks(void)
     for (block_count_t i = 0; i < maxIndex; i++) {
       uds_free(vdo_int_map_remove(dataBlocks, i));
     }
-    vdo_free_int_map(uds_forget(dataBlocks));
+    vdo_hash_map_free(uds_forget(dataBlocks));
   }
 
   uds_free(buffer);
