@@ -169,9 +169,9 @@ static struct bio *get_bio_list(struct vio *vio)
 
 	mutex_lock(&bio_queue_data->lock);
 	bio_sector = get_bio_sector(vio->bios_merged.head);
-	vdo_hash_map_remove(bio_queue_data->map, &bio_sector);
+	vdo_hash_map_remove(bio_queue_data->map, bio_sector);
 	bio_sector = get_bio_sector(vio->bios_merged.tail);
-	vdo_hash_map_remove(bio_queue_data->map, &bio_sector);
+	vdo_hash_map_remove(bio_queue_data->map, bio_sector);
 	bio = vio->bios_merged.head;
 	bio_list_init(&vio->bios_merged);
 	mutex_unlock(&bio_queue_data->lock);
@@ -221,7 +221,7 @@ static struct vio *get_mergeable_locked(struct vdo_hash_map *map, struct vio *vi
 	else
 		merge_sector += VDO_SECTORS_PER_BLOCK;
 
-	vio_merge = vdo_hash_map_get(map, &merge_sector);
+	vio_merge = vdo_hash_map_get(map, merge_sector);
 	if (vio_merge == NULL)
 		return NULL;
 
@@ -248,19 +248,19 @@ static int map_merged_vio(struct vdo_hash_map *bio_map, struct vio *vio)
 	sector_t bio_sector;
 
 	bio_sector = get_bio_sector(vio->bios_merged.head);
-	result = vdo_hash_map_put(bio_map, &bio_sector, vio, true, NULL);
+	result = vdo_hash_map_put(bio_map, bio_sector, vio, true, NULL);
 	if (result != VDO_SUCCESS)
 		return result;
 
 	bio_sector = get_bio_sector(vio->bios_merged.tail);
-	return vdo_hash_map_put(bio_map, &bio_sector, vio, true, NULL);
+	return vdo_hash_map_put(bio_map, bio_sector, vio, true, NULL);
 }
 
 static int merge_to_prev_tail(struct vdo_hash_map *bio_map, struct vio *vio, struct vio *prev_vio)
 {
 	sector_t bio_sector = get_bio_sector(prev_vio->bios_merged.tail);
 
-	vdo_hash_map_remove(bio_map, &bio_sector);
+	vdo_hash_map_remove(bio_map, bio_sector);
 	bio_list_merge(&prev_vio->bios_merged, &vio->bios_merged);
 	return map_merged_vio(bio_map, prev_vio);
 }
@@ -274,7 +274,7 @@ static int merge_to_next_head(struct vdo_hash_map *bio_map, struct vio *vio, str
 	 */
 	sector_t bio_sector = get_bio_sector(next_vio->bios_merged.head);
 
-	vdo_hash_map_remove(bio_map, &bio_sector);
+	vdo_hash_map_remove(bio_map, bio_sector);
 	bio_list_merge_head(&next_vio->bios_merged, &vio->bios_merged);
 	return map_merged_vio(bio_map, next_vio);
 }
@@ -311,7 +311,7 @@ static bool try_bio_map_merge(struct vio *vio)
 		/* no merge. just add to bio_queue */
 		merged = false;
 		result = vdo_hash_map_put(bio_queue_data->map,
-					  &bio->bi_iter.bi_sector,
+					  bio->bi_iter.bi_sector,
 					  vio, true, NULL);
 	} else if (next_vio == NULL) {
 		/* Only prev. merge to prev's tail */
@@ -444,7 +444,7 @@ int vdo_make_io_submitter(unsigned int thread_count,
 		 * uneven. So for now, we'll assume that all requests *may* wind up on one thread,
 		 * and thus all in the same map.
 		 */
-		result = vdo_hash_map_create(HASH_MAP_TYPE_INT, max_requests_active * 2,
+		result = vdo_hash_map_create(max_requests_active * 2,
 					     &bio_queue_data->map);
 		if (result != 0) {
 			/*

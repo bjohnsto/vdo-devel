@@ -463,7 +463,7 @@ static void attempt_logical_block_lock(struct vdo_completion *completion)
 		return;
 	}
 
-	result = vdo_hash_map_put(lock->zone->lbn_operations, &lock->lbn,
+	result = vdo_hash_map_put(lock->zone->lbn_operations, lock->lbn,
 				  data_vio, false, (void **) &lock_holder);
 	if (result != VDO_SUCCESS) {
 		continue_data_vio_with_error(data_vio, result);
@@ -1215,7 +1215,7 @@ static void release_lock(struct data_vio *data_vio, struct lbn_lock *lock)
 
 	if (!lock->locked) {
 		/*  The lock is not locked, so it had better not be registered in the lock map. */
-		lock_holder = vdo_hash_map_get(lock_map, &lock->lbn);
+		lock_holder = vdo_hash_map_get(lock_map, lock->lbn);
 		ASSERT_LOG_ONLY((data_vio != lock_holder),
 				"no logical block lock held for block %llu",
 				(unsigned long long) lock->lbn);
@@ -1223,7 +1223,7 @@ static void release_lock(struct data_vio *data_vio, struct lbn_lock *lock)
 	}
 
 	/* Release the lock by removing the lock from the map. */
-	lock_holder = vdo_hash_map_remove(lock_map, &lock->lbn);
+	lock_holder = vdo_hash_map_remove(lock_map, lock->lbn);
 	ASSERT_LOG_ONLY((data_vio == lock_holder),
 			"logical block lock mismatch for block %llu",
 			(unsigned long long) lock->lbn);
@@ -1244,7 +1244,7 @@ static void transfer_lock(struct data_vio *data_vio, struct lbn_lock *lock)
 	/* Transfer the remaining lock waiters to the next lock holder. */
 	vdo_transfer_all_waiters(&lock->waiters, &next_lock_holder->logical.waiters);
 
-	result = vdo_hash_map_put(lock->zone->lbn_operations, &lock->lbn,
+	result = vdo_hash_map_put(lock->zone->lbn_operations, lock->lbn,
 				  next_lock_holder, true, (void **) &lock_holder);
 	if (result != VDO_SUCCESS) {
 		continue_data_vio_with_error(next_lock_holder, result);

@@ -233,7 +233,7 @@ static int __must_check allocate_cache_components(struct vdo_page_cache *cache)
 	if (result != UDS_SUCCESS)
 		return result;
 
-	result = vdo_hash_map_create(HASH_MAP_TYPE_INT, cache->page_count, &cache->page_map);
+	result = vdo_hash_map_create(cache->page_count, &cache->page_map);
 	if (result != UDS_SUCCESS)
 		return result;
 
@@ -388,12 +388,12 @@ static int __must_check set_info_pbn(struct page_info *info, physical_block_numb
 		return result;
 
 	if (info->pbn != NO_PAGE)
-		vdo_hash_map_remove(cache->page_map, &info->pbn);
+		vdo_hash_map_remove(cache->page_map, info->pbn);
 
 	info->pbn = pbn;
 
 	if (pbn != NO_PAGE) {
-		result = vdo_hash_map_put(cache->page_map, &pbn, info, true, NULL);
+		result = vdo_hash_map_put(cache->page_map, pbn, info, true, NULL);
 		if (result != UDS_SUCCESS)
 			return result;
 	}
@@ -447,7 +447,7 @@ find_page(struct vdo_page_cache *cache, physical_block_number_t pbn)
 	if ((cache->last_found != NULL) && (cache->last_found->pbn == pbn))
 		return cache->last_found;
 
-	cache->last_found = vdo_hash_map_get(cache->page_map, &pbn);
+	cache->last_found = vdo_hash_map_get(cache->page_map, pbn);
 	return cache->last_found;
 }
 
@@ -1355,8 +1355,7 @@ int vdo_invalidate_page_cache(struct vdo_page_cache *cache)
 
 	/* Reset the page map by re-allocating it. */
 	vdo_hash_map_free(uds_forget(cache->page_map));
-	return vdo_hash_map_create(HASH_MAP_TYPE_INT, cache->page_count,
-				   &cache->page_map);
+	return vdo_hash_map_create(cache->page_count, &cache->page_map);
 }
 
 /**
@@ -1729,7 +1728,7 @@ static void release_page_lock(struct data_vio *data_vio, char *what)
 			lock->root_index);
 
 	zone = data_vio->logical.zone->block_map_zone;
-	lock_holder = vdo_hash_map_remove(zone->loading_pages, &lock->key);
+	lock_holder = vdo_hash_map_remove(zone->loading_pages, lock->key);
 	ASSERT_LOG_ONLY((lock_holder == lock),
 			"block map page %s mismatch for key %llu in tree %u",
 			what,
@@ -1929,7 +1928,7 @@ static int attempt_page_lock(struct block_map_zone *zone, struct data_vio *data_
 	};
 	lock->key = key.key;
 
-	result = vdo_hash_map_put(zone->loading_pages, &lock->key,
+	result = vdo_hash_map_put(zone->loading_pages, lock->key,
 				  lock, false, (void **) &lock_holder);
 	if (result != VDO_SUCCESS)
 		return result;
@@ -2795,8 +2794,7 @@ static int __must_check initialize_block_map_zone(struct block_map *map,
 		INIT_LIST_HEAD(&zone->dirty_lists->eras[i][VDO_CACHE_PAGE]);
 	}
 
-	result = vdo_hash_map_create(HASH_MAP_TYPE_INT, VDO_LOCK_MAP_CAPACITY,
-				     &zone->loading_pages);
+	result = vdo_hash_map_create(VDO_LOCK_MAP_CAPACITY, &zone->loading_pages);
 	if (result != VDO_SUCCESS)
 		return result;
 

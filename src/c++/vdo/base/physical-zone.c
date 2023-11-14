@@ -337,7 +337,7 @@ static int initialize_zone(struct vdo *vdo, struct physical_zones *zones)
 	zone_count_t zone_number = zones->zone_count;
 	struct physical_zone *zone = &zones->zones[zone_number];
 
-	result = vdo_hash_map_create(HASH_MAP_TYPE_INT, VDO_LOCK_MAP_CAPACITY,
+	result = vdo_hash_map_create(VDO_LOCK_MAP_CAPACITY,
 				     &zone->pbn_operations);
 	if (result != VDO_SUCCESS)
 		return result;
@@ -428,7 +428,7 @@ void vdo_free_physical_zones(struct physical_zones *zones)
 struct pbn_lock *
 vdo_get_physical_zone_pbn_lock(struct physical_zone *zone, physical_block_number_t pbn)
 {
-	return ((zone == NULL) ? NULL : vdo_hash_map_get(zone->pbn_operations, &pbn));
+	return ((zone == NULL) ? NULL : vdo_hash_map_get(zone->pbn_operations, pbn));
 }
 
 /**
@@ -464,7 +464,7 @@ int vdo_attempt_physical_zone_pbn_lock(struct physical_zone *zone,
 		return result;
 	}
 
-	result = vdo_hash_map_put(zone->pbn_operations, &pbn, new_lock, false, (void **) &lock);
+	result = vdo_hash_map_put(zone->pbn_operations, pbn, new_lock, false, (void **) &lock);
 	if (result != VDO_SUCCESS) {
 		return_pbn_lock_to_pool(zone->lock_pool, new_lock);
 		return result;
@@ -639,7 +639,7 @@ void vdo_release_physical_zone_pbn_lock(struct physical_zone *zone,
 		return;
 	}
 
-	holder = vdo_hash_map_remove(zone->pbn_operations, &locked_pbn);
+	holder = vdo_hash_map_remove(zone->pbn_operations, locked_pbn);
 	ASSERT_LOG_ONLY((lock == holder),
 			"physical block lock mismatch for block %llu",
 			(unsigned long long) locked_pbn);

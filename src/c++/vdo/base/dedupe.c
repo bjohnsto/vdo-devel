@@ -375,6 +375,13 @@ struct pbn_lock *vdo_get_duplicate_lock(struct data_vio *data_vio)
 	return data_vio->hash_lock->duplicate_lock;
 }
 
+/** get_hash_lock_key() - Converts a uds_record_name into a u64 key. */
+static u64 get_hash_lock_key(const struct uds_record_name *name)
+{
+	/* Use the record name as a hash key. */
+        return get_unaligned_le64(&name->name);
+}
+
 /**
  * get_hash_lock_state_name() - Get the string representation of a hash lock state.
  * @state: The hash lock state.
@@ -869,6 +876,7 @@ static int __must_check acquire_lock(struct hash_zone *zone,
 				     struct hash_lock **lock_ptr)
 {
 	struct hash_lock *lock, *new_lock;
+	u64 key;
 	int result;
 
 	/*
@@ -888,7 +896,8 @@ static int __must_check acquire_lock(struct hash_zone *zone,
 	 */
 	new_lock->hash = *hash;
 
-	result = vdo_hash_map_put(zone->hash_lock_map, &new_lock->hash, new_lock,
+	key = get_hash_lock_key(&new_lock->hash);
+	result = vdo_hash_map_put(zone->hash_lock_map, key, new_lock,
 				  (replace_lock != NULL), (void **) &lock);
 	if (result != VDO_SUCCESS) {
 		return_hash_lock_to_pool(zone, uds_forget(new_lock));
@@ -1921,6 +1930,7 @@ void vdo_release_hash_lock(struct data_vio *data_vio)
 {
 	struct hash_lock *lock = data_vio->hash_lock;
 	struct hash_zone *zone = data_vio->hash_zone;
+	u64 key;
 
 	if (lock == NULL)
 		return;
@@ -1932,12 +1942,13 @@ void vdo_release_hash_lock(struct data_vio *data_vio)
 		return;
 	}
 
-	if (lock->registered) {
+	key = get_hash_lock_key(&lock->hash);
+	if (lock->registered) {	  
 		struct hash_lock *removed =
-			vdo_hash_map_remove(zone->hash_lock_map, &lock->hash);
+		  vdo_hash_map_remove(zone->hash_lock_map, key);
 		ASSERT_LOG_ONLY(lock == removed, "hash lock being released must have been mapped");
 	} else {
-		ASSERT_LOG_ONLY(lock != vdo_hash_map_get(zone->hash_lock_map, &lock->hash),
+		ASSERT_LOG_ONLY(lock != vdo_hash_map_get(zone->hash_lock_map, key),
 				"unregistered hash lock must not be in the lock map");
 	}
 
@@ -2406,7 +2417,7 @@ initialize_zone(struct vdo *vdo, struct hash_zones *zones, zone_count_t zone_num
 	data_vio_count_t i;
 	struct hash_zone *zone = &zones->zones[zone_number];
 
-	result = vdo_hash_map_create(HASH_MAP_TYPE_PTR, VDO_LOCK_MAP_CAPACITY,
+	result = vdo_hash_map_create(VDO_LOCK_MAP_CAPACITY,
 				     &zone->hash_lock_map);
 	if (result != VDO_SUCCESS)
 		return result;
