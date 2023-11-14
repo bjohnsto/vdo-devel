@@ -21,19 +21,20 @@
 static void testEmptyMap(void)
 {
   struct vdo_hash_map *map;
+  uint64_t zero = 0;
+  uint64_t rndNum = random();
+    
   UDS_ASSERT_SUCCESS(vdo_hash_map_create(HASH_MAP_TYPE_INT, 0, &map));
 
-  uint64_t zero = 0;
-  
   // Check the properties of the empty map.
   CU_ASSERT_EQUAL(0, vdo_hash_map_size(map));
   CU_ASSERT_PTR_NULL(vdo_hash_map_get(map, &zero));
 
   // Try to remove the zero key--it should not be mapped.
-  CU_ASSERT_PTR_NULL(vdo_int_map_remove(map, 0));
+  CU_ASSERT_PTR_NULL(vdo_hash_map_remove(map, &zero));
 
   // Try to remove a randomly-selected key--it should not be mapped.
-  CU_ASSERT_PTR_NULL(vdo_int_map_remove(map, random()));
+  CU_ASSERT_PTR_NULL(vdo_hash_map_remove(map, &rndNum));
 
   vdo_hash_map_free(uds_forget(map));
   CU_ASSERT_PTR_NULL(map);
@@ -72,9 +73,10 @@ static void testSingletonMap(void)
   CU_ASSERT_PTR_EQUAL(value, oldValue2);
   verifySingletonMap(map, key, value);
 
-  if (key != 0) {
+  if (key != 0) {    
     // Try to remove the zero key--it should not be mapped.
-    CU_ASSERT_PTR_NULL(vdo_int_map_remove(map, 0));
+    uint64_t zero = 0;
+    CU_ASSERT_PTR_NULL(vdo_hash_map_remove(map, &zero));
     verifySingletonMap(map, key, value);
   }
 
@@ -84,7 +86,7 @@ static void testSingletonMap(void)
   do {
     bogusKey = random();
   } while (bogusKey == key);
-  CU_ASSERT_PTR_NULL(vdo_int_map_remove(map, bogusKey));
+  CU_ASSERT_PTR_NULL(vdo_hash_map_remove(map, &bogusKey));
   verifySingletonMap(map, key, value);
 
   // Replace the singleton key.
@@ -97,7 +99,7 @@ static void testSingletonMap(void)
   verifySingletonMap(map, key, value3);
 
   // Remove the singleton.
-  CU_ASSERT_PTR_EQUAL(value3, vdo_int_map_remove(map, key));
+  CU_ASSERT_PTR_EQUAL(value3, vdo_hash_map_remove(map, &key));
 
   // The mapping must no longer be there.
   CU_ASSERT_EQUAL(0, vdo_hash_map_size(map));
@@ -135,7 +137,7 @@ static void test16BitMap(void)
 
   // Remove the odd-numbered keys.
   for (int key = 1; key <= U16_MAX; key += 2) {
-    CU_ASSERT_PTR_EQUAL(&values[key], vdo_int_map_remove(map, key));
+    CU_ASSERT_PTR_EQUAL(&values[key], vdo_hash_map_remove(map, &key));
     CU_ASSERT_PTR_NULL(vdo_hash_map_get(map, &key));
   }
   CU_ASSERT_EQUAL(1 << 15, vdo_hash_map_size(map));
@@ -160,7 +162,7 @@ static void test16BitMap(void)
 
   // Remove everything.
   for (int key = 0; key <= U16_MAX; key++) {
-    CU_ASSERT_PTR_EQUAL(&values[U16_MAX - key], vdo_int_map_remove(map, key));
+    CU_ASSERT_PTR_EQUAL(&values[U16_MAX - key], vdo_hash_map_remove(map, &key));
     CU_ASSERT_PTR_NULL(vdo_hash_map_get(map, &key));
     CU_ASSERT_EQUAL(U16_MAX - key, vdo_hash_map_size(map));
   }
@@ -189,7 +191,7 @@ static void testSteadyState(void)
   // exercising the operation of the map at a steady-state of N entries.
   for (size_t i = 0; i < (10 * SIZE); i++) {
     uint64_t key = SIZE + i;
-    CU_ASSERT_PTR_EQUAL((void *) (i + 1), vdo_int_map_remove(map, i));
+    CU_ASSERT_PTR_EQUAL((void *) (i + 1), vdo_hash_map_remove(map, &i));
     UDS_ASSERT_SUCCESS(vdo_hash_map_put(map,
 					&key,
 					(void *) (SIZE + i + 1),

@@ -201,7 +201,7 @@ static void initializeWithDefaults(void)
 static void finishVDOPageCacheT1(void)
 {
   for (physical_block_number_t pbn = 0; pbn <= maxPBN; pbn++) {
-    void *marker = vdo_int_map_remove(pageMap, pbn);
+    void *marker = vdo_hash_map_remove(pageMap, &pbn);
     CU_ASSERT_FALSE(marker == pageMap);
   }
 

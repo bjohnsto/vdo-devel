@@ -163,7 +163,7 @@ void setLatch(physical_block_number_t pbn)
 static bool clearLatchLocked(void *context)
 {
   VIOLatch *latch
-    = vdo_int_map_remove(latchedVIOs, *((physical_block_number_t *) context));
+    = vdo_hash_map_remove(latchedVIOs, (physical_block_number_t *) context);
   if (latch != NULL) {
     if (latch->vio != NULL) {
       reallyEnqueueVIO(latch->vio);

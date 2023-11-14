@@ -83,7 +83,7 @@ void tearDownDataBlocks(void)
 {
   if (dataBlocks != NULL) {
     for (block_count_t i = 0; i < maxIndex; i++) {
-      uds_free(vdo_int_map_remove(dataBlocks, i));
+      uds_free(vdo_hash_map_remove(dataBlocks, &i));
     }
     vdo_hash_map_free(uds_forget(dataBlocks));
   }

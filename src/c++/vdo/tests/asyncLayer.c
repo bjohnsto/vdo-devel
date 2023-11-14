@@ -554,8 +554,8 @@ static void removeCompletionEnqueueHookLocked(CompletionHook *function)
 {
   AsyncLayer *asyncLayer = asAsyncLayer();
   CompletionHookEntry *hook
-    = vdo_int_map_remove(asyncLayer->completionEnqueueHooksMap,
-                         (uintptr_t) function);
+    = vdo_hash_map_remove(asyncLayer->completionEnqueueHooksMap,
+			  (uintptr_t *)&function);
   if (hook != NULL) {
     list_del(&hook->listEntry);
     uds_free(hook);

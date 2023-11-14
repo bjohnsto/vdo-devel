@@ -140,7 +140,7 @@ int intIntMapPut(IntIntMap *map,
 /**********************************************************************/
 bool intIntMapRemove(IntIntMap *map, uint64_t key, uint64_t *oldValuePtr)
 {
-  IntHolder *holder = vdo_int_map_remove(map->map, key);
+  IntHolder *holder = vdo_hash_map_remove(map->map, &key);
   if (holder == NULL) {
     return false;
   }

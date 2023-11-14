@@ -97,7 +97,7 @@ static bool runSaved(struct vdo_completion *completion)
   bool *old = NULL;
 
   uds_lock_mutex(&mutex);
-  SavedActions *actions = vdo_int_map_remove(wrapMap, (uintptr_t) completion);
+  SavedActions *actions = vdo_hash_map_remove(wrapMap, (uintptr_t *)&completion);
   VDO_ASSERT_SUCCESS(vdo_hash_map_put(enqueueMap,
 				      (uintptr_t *)&completion,
 				      &requeued,
@@ -118,7 +118,7 @@ static bool runSaved(struct vdo_completion *completion)
   }
 
   uds_lock_mutex(&mutex);
-  vdo_int_map_remove(enqueueMap, (uintptr_t) completion);
+  vdo_hash_map_remove(enqueueMap, (uintptr_t *)&completion);
   uds_unlock_mutex(&mutex);
 
   return false;
@@ -146,7 +146,7 @@ void runSavedCallbackAssertNoRequeue(struct vdo_completion *completion)
 void notifyEnqueue(struct vdo_completion *completion)
 {
   uds_lock_mutex(&mutex);
-  bool *requeued = vdo_int_map_remove(enqueueMap, (uintptr_t) completion);
+  bool *requeued = vdo_hash_map_remove(enqueueMap, (uintptr_t *)&completion);
   if (requeued != NULL) {
     *requeued = true;
   }
