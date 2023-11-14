@@ -41,8 +41,8 @@ static void tearDown(void)
 void initializeCallbackWrapping(void)
 {
   uds_initialize_mutex(&mutex, true);
-  VDO_ASSERT_SUCCESS(vdo_hash_map_create(HASH_MAP_TYPE_INT, 0, &wrapMap));
-  VDO_ASSERT_SUCCESS(vdo_hash_map_create(HASH_MAP_TYPE_INT, 0, &enqueueMap));
+  VDO_ASSERT_SUCCESS(vdo_hash_map_create(0, &wrapMap));
+  VDO_ASSERT_SUCCESS(vdo_hash_map_create(0, &enqueueMap));
   registerTearDownAction(tearDown);
 }
 
@@ -63,7 +63,7 @@ static void wrapCompletion(struct vdo_completion *completion,
   SavedActions *old;
   uds_lock_mutex(&mutex);
   VDO_ASSERT_SUCCESS(vdo_hash_map_put(wrapMap,
-				      (uintptr_t *)&completion,
+				      (uintptr_t)completion,
 				      actions,
 				      false,
 				      (void **) &old));
@@ -96,9 +96,9 @@ static bool runSaved(struct vdo_completion *completion)
   bool *old = NULL;
 
   uds_lock_mutex(&mutex);
-  SavedActions *actions = vdo_hash_map_remove(wrapMap, (uintptr_t *)&completion);
+  SavedActions *actions = vdo_hash_map_remove(wrapMap, (uintptr_t)completion);
   VDO_ASSERT_SUCCESS(vdo_hash_map_put(enqueueMap,
-				      (uintptr_t *)&completion,
+				      (uintptr_t)completion,
 				      &requeued,
 				      false,
 				      (void **) &old));
@@ -117,7 +117,7 @@ static bool runSaved(struct vdo_completion *completion)
   }
 
   uds_lock_mutex(&mutex);
-  vdo_hash_map_remove(enqueueMap, (uintptr_t *)&completion);
+  vdo_hash_map_remove(enqueueMap, (uintptr_t)completion);
   uds_unlock_mutex(&mutex);
 
   return false;
@@ -145,7 +145,7 @@ void runSavedCallbackAssertNoRequeue(struct vdo_completion *completion)
 void notifyEnqueue(struct vdo_completion *completion)
 {
   uds_lock_mutex(&mutex);
-  bool *requeued = vdo_hash_map_remove(enqueueMap, (uintptr_t *)&completion);
+  bool *requeued = vdo_hash_map_remove(enqueueMap, (uintptr_t)completion);
   if (requeued != NULL) {
     *requeued = true;
   }

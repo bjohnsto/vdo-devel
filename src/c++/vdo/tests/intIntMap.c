@@ -40,8 +40,7 @@ int makeIntIntMap(size_t initialCapacity, IntIntMap **mapPtr)
     return result;
   }
 
-  result = vdo_hash_map_create(HASH_MAP_TYPE_INT, initialCapacity,
-			       &intIntMap->map);
+  result = vdo_hash_map_create(initialCapacity, &intIntMap->map);
   if (result != VDO_SUCCESS) {
     uds_free(intIntMap);
     return result;
@@ -81,7 +80,7 @@ size_t intIntMapSize(const IntIntMap *map)
 /**********************************************************************/
 bool intIntMapGet(IntIntMap *map, uint64_t key, uint64_t *value)
 {
-  IntHolder *holder = vdo_hash_map_get(map->map, &key);
+  IntHolder *holder = vdo_hash_map_get(map->map, key);
   if (holder == NULL) {
     return false;
   }
@@ -108,7 +107,7 @@ int intIntMapPut(IntIntMap *map,
 
   IntHolder *holder;
   result
-    = vdo_hash_map_put(map->map, &key, newHolder, update, (void **) &holder);
+    = vdo_hash_map_put(map->map, key, newHolder, update, (void **) &holder);
   if (result != VDO_SUCCESS) {
     uds_free(newHolder);
     return result;
@@ -140,7 +139,7 @@ int intIntMapPut(IntIntMap *map,
 /**********************************************************************/
 bool intIntMapRemove(IntIntMap *map, uint64_t key, uint64_t *oldValuePtr)
 {
-  IntHolder *holder = vdo_hash_map_remove(map->map, &key);
+  IntHolder *holder = vdo_hash_map_remove(map->map, key);
   if (holder == NULL) {
     return false;
   }

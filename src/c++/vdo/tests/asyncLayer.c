@@ -202,7 +202,7 @@ void initializeAsyncLayer(PhysicalLayer *syncLayer)
 {
   AsyncLayer *asyncLayer;
   VDO_ASSERT_SUCCESS(uds_allocate(1, AsyncLayer, __func__, &asyncLayer));
-  VDO_ASSERT_SUCCESS(vdo_hash_map_create(HASH_MAP_TYPE_INT, 0,
+  VDO_ASSERT_SUCCESS(vdo_hash_map_create(0,
 					 &asyncLayer->completionEnqueueHooksMap));
   VDO_ASSERT_SUCCESS(uds_init_mutex(&asyncLayer->mutex));
   VDO_ASSERT_SUCCESS(uds_init_cond(&asyncLayer->condition));
@@ -555,7 +555,7 @@ static void removeCompletionEnqueueHookLocked(CompletionHook *function)
   AsyncLayer *asyncLayer = asAsyncLayer();
   CompletionHookEntry *hook
     = vdo_hash_map_remove(asyncLayer->completionEnqueueHooksMap,
-			  (uintptr_t *)&function);
+			  (uintptr_t)function);
   if (hook != NULL) {
     list_del(&hook->listEntry);
     uds_free(hook);
@@ -619,7 +619,7 @@ static void addCompletionEnqueueHookLocked(CompletionHook *function)
   CompletionHookEntry *old;
   AsyncLayer *asyncLayer = asAsyncLayer();
   VDO_ASSERT_SUCCESS(vdo_hash_map_put(asyncLayer->completionEnqueueHooksMap,
-				      (uintptr_t *)&function,
+				      (uintptr_t)function,
 				      hook,
 				      false,
 				      (void **) &old));

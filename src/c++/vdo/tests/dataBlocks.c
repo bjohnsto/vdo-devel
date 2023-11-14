@@ -83,7 +83,7 @@ void tearDownDataBlocks(void)
 {
   if (dataBlocks != NULL) {
     for (block_count_t i = 0; i < maxIndex; i++) {
-      uds_free(vdo_hash_map_remove(dataBlocks, &i));
+      uds_free(vdo_hash_map_remove(dataBlocks, i));
     }
     vdo_hash_map_free(uds_forget(dataBlocks));
   }
@@ -99,8 +99,7 @@ void tearDownDataBlocks(void)
 char *getDataBlock(block_count_t index)
 {
   if (maxIndex == 0) {
-    VDO_ASSERT_SUCCESS(vdo_hash_map_create(HASH_MAP_TYPE_INT, INITIAL_BLOCKS,
-					   &dataBlocks));
+    VDO_ASSERT_SUCCESS(vdo_hash_map_create(INITIAL_BLOCKS, &dataBlocks));
   }
 
   if (buffer == NULL) {
@@ -109,7 +108,7 @@ char *getDataBlock(block_count_t index)
 
   char *block;
   VDO_ASSERT_SUCCESS(vdo_hash_map_put(dataBlocks,
-				      &index,
+				      index,
 				      buffer,
 				      false,
 				      (void **) &block));

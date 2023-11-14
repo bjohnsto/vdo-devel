@@ -35,7 +35,7 @@ void initializeRecoveryModeTest(const TestParameters *testParameters)
 {
   VDO_ASSERT_SUCCESS(uds_init_mutex(&mutex));
   VDO_ASSERT_SUCCESS(uds_init_cond(&condition));
-  VDO_ASSERT_SUCCESS(vdo_hash_map_create(HASH_MAP_TYPE_INT, 8, &latchedVIOs));
+  VDO_ASSERT_SUCCESS(vdo_hash_map_create(8, &latchedVIOs));
   initializeVDOTest(testParameters);
 }
 
@@ -53,7 +53,7 @@ static bool latchSlab(struct vio              *vio,
                       slab_count_t             slabNumber,
                       physical_block_number_t  pbn)
 {
-  struct vio *latchedSlabVIO = vdo_hash_map_get(latchedVIOs, &slabNumber);
+  struct vio *latchedSlabVIO = vdo_hash_map_get(latchedVIOs, slabNumber);
   if (latchedSlabVIO != LATCH_DESIRED) {
     return true;
   }
@@ -68,7 +68,7 @@ static bool latchSlab(struct vio              *vio,
     return true;
   }
 
-  UDS_ASSERT_SUCCESS(vdo_hash_map_put(latchedVIOs, &slabNumber, vio, true, NULL));
+  UDS_ASSERT_SUCCESS(vdo_hash_map_put(latchedVIOs, slabNumber, vio, true, NULL));
   uds_broadcast_cond(&condition);
   return false;
 }
@@ -124,7 +124,7 @@ static void setupSlabLatch(slab_count_t slabNumber, LatchOperation operation)
   uds_lock_mutex(&mutex);
   struct vio *oldEntry = NULL;
   UDS_ASSERT_SUCCESS(vdo_hash_map_put(latchedVIOs,
-				      &slabNumber,
+				      slabNumber,
 				      LATCH_DESIRED,
 				      false,
 				      (void **) &oldEntry));
@@ -160,7 +160,7 @@ void setupSlabLoadingLatch(slab_count_t slabNumber)
 /**********************************************************************/
 static bool isSlabLatched(slab_count_t slabNumber, struct vio **latchedVIO)
 {
-  struct vio *latchedSlabVIO = vdo_hash_map_get(latchedVIOs, &slabNumber);
+  struct vio *latchedSlabVIO = vdo_hash_map_get(latchedVIOs, slabNumber);
   bool isLatched = ((latchedSlabVIO != NULL)
                     && (latchedSlabVIO != LATCH_DESIRED));
   if (isLatched && (latchedVIO != NULL)) {
@@ -204,7 +204,7 @@ slab_count_t waitForAnySlabToLatch(slab_count_t slabs)
 void releaseSlabLatch(slab_count_t slabNumber)
 {
   uds_lock_mutex(&mutex);
-  struct vio *latchedSlabVIO = vdo_hash_map_remove(latchedVIOs, &slabNumber);
+  struct vio *latchedSlabVIO = vdo_hash_map_remove(latchedVIOs, slabNumber);
   if (vdo_hash_map_size(latchedVIOs) == 0) {
     removeCompletionEnqueueHook(latchReferenceBlockIO);
     latchOperation = LATCH_UNSET;
@@ -225,7 +225,7 @@ void releaseAllSlabLatches(slab_count_t slabs)
   latchOperation = LATCH_UNSET;
 
   for (slab_count_t i = 0; i < slabs; i++) {
-    struct vio *latchedSlabVIO = vdo_hash_map_remove(latchedVIOs, &i);
+    struct vio *latchedSlabVIO = vdo_hash_map_remove(latchedVIOs, i);
     if ((latchedSlabVIO != NULL) && (latchedSlabVIO != LATCH_DESIRED)) {
       reallyEnqueueVIO(latchedSlabVIO);
     }
