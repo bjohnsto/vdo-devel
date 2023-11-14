@@ -23,9 +23,11 @@ static void testEmptyMap(void)
   struct vdo_hash_map *map;
   UDS_ASSERT_SUCCESS(vdo_hash_map_create(HASH_MAP_TYPE_INT, 0, &map));
 
+  uint64_t zero = 0;
+  
   // Check the properties of the empty map.
-  CU_ASSERT_EQUAL(0, vdo_int_map_size(map));
-  CU_ASSERT_PTR_NULL(vdo_int_map_get(map, 0));
+  CU_ASSERT_EQUAL(0, vdo_hash_map_size(map));
+  CU_ASSERT_PTR_NULL(vdo_hash_map_get(map, &zero));
 
   // Try to remove the zero key--it should not be mapped.
   CU_ASSERT_PTR_NULL(vdo_int_map_remove(map, 0));
@@ -41,8 +43,8 @@ static void testEmptyMap(void)
 static void verifySingletonMap(struct vdo_hash_map *map, uint64_t key,
 			       void *value)
 {
-  CU_ASSERT_EQUAL(1, vdo_int_map_size(map));
-  CU_ASSERT_PTR_EQUAL(value, vdo_int_map_get(map, key));
+  CU_ASSERT_EQUAL(1, vdo_hash_map_size(map));
+  CU_ASSERT_PTR_EQUAL(value, vdo_hash_map_get(map, &key));
 }
 
 /**********************************************************************/
@@ -98,8 +100,8 @@ static void testSingletonMap(void)
   CU_ASSERT_PTR_EQUAL(value3, vdo_int_map_remove(map, key));
 
   // The mapping must no longer be there.
-  CU_ASSERT_EQUAL(0, vdo_int_map_size(map));
-  CU_ASSERT_PTR_NULL(vdo_int_map_get(map, key));
+  CU_ASSERT_EQUAL(0, vdo_hash_map_size(map));
+  CU_ASSERT_PTR_NULL(vdo_hash_map_get(map, &key));
 
   // Try to add the value again.
   UDS_ASSERT_SUCCESS(vdo_int_map_put(map, key, value2, false, &oldValue));
@@ -124,23 +126,23 @@ static void test16BitMap(void)
 
   // Create an identity map of [0..65535] -> [0..65535].
   for (int key = 0; key <= U16_MAX; key++) {
-    CU_ASSERT_EQUAL(key, vdo_int_map_size(map));
-    CU_ASSERT_PTR_NULL(vdo_int_map_get(map, key));
+    CU_ASSERT_EQUAL(key, vdo_hash_map_size(map));
+    CU_ASSERT_PTR_NULL(vdo_hash_map_get(map, &key));
     UDS_ASSERT_SUCCESS(vdo_int_map_put(map, key, &values[key], true, NULL));
-    CU_ASSERT_PTR_EQUAL(&values[key], vdo_int_map_get(map, key));
+    CU_ASSERT_PTR_EQUAL(&values[key], vdo_hash_map_get(map, &key));
   }
-  CU_ASSERT_EQUAL(1 << 16, vdo_int_map_size(map));
+  CU_ASSERT_EQUAL(1 << 16, vdo_hash_map_size(map));
 
   // Remove the odd-numbered keys.
   for (int key = 1; key <= U16_MAX; key += 2) {
     CU_ASSERT_PTR_EQUAL(&values[key], vdo_int_map_remove(map, key));
-    CU_ASSERT_PTR_NULL(vdo_int_map_get(map, key));
+    CU_ASSERT_PTR_NULL(vdo_hash_map_get(map, &key));
   }
-  CU_ASSERT_EQUAL(1 << 15, vdo_int_map_size(map));
+  CU_ASSERT_EQUAL(1 << 15, vdo_hash_map_size(map));
 
   // Re-map everything to its complement: 0->65535, 1->65534, etc.
   for (int key = 0; key <= U16_MAX; key++) {
-    void *value = vdo_int_map_get(map, key);
+    void *value = vdo_hash_map_get(map, &key);
     if ((key % 2) == 0) {
       CU_ASSERT_PTR_EQUAL(&values[key], value);
     } else {
@@ -151,18 +153,18 @@ static void test16BitMap(void)
   }
 
   // Verify the mapping.
-  CU_ASSERT_EQUAL(1 << 16, vdo_int_map_size(map));
+  CU_ASSERT_EQUAL(1 << 16, vdo_hash_map_size(map));
   for (int key = 0; key <= U16_MAX; key++) {
-    CU_ASSERT_PTR_EQUAL(&values[U16_MAX - key], vdo_int_map_get(map, key));
+    CU_ASSERT_PTR_EQUAL(&values[U16_MAX - key], vdo_hash_map_get(map, &key));
   }
 
   // Remove everything.
   for (int key = 0; key <= U16_MAX; key++) {
     CU_ASSERT_PTR_EQUAL(&values[U16_MAX - key], vdo_int_map_remove(map, key));
-    CU_ASSERT_PTR_NULL(vdo_int_map_get(map, key));
-    CU_ASSERT_EQUAL(U16_MAX - key, vdo_int_map_size(map));
+    CU_ASSERT_PTR_NULL(vdo_hash_map_get(map, &key));
+    CU_ASSERT_EQUAL(U16_MAX - key, vdo_hash_map_size(map));
   }
-  CU_ASSERT_EQUAL(0, vdo_int_map_size(map));
+  CU_ASSERT_EQUAL(0, vdo_hash_map_size(map));
 
   free(values);
   vdo_hash_map_free(uds_forget(map));
@@ -179,7 +181,7 @@ static void testSteadyState(void)
 
   // Fill the map with mappings of { 0 -> 1 }, { 1 -> 2 }, etc.
   for (size_t i = 0; i < SIZE; i++) {
-    CU_ASSERT_EQUAL(i, vdo_int_map_size(map));
+    CU_ASSERT_EQUAL(i, vdo_hash_map_size(map));
     UDS_ASSERT_SUCCESS(vdo_int_map_put(map, i, (void *) (i + 1), true, NULL));
   }
 
@@ -192,7 +194,7 @@ static void testSteadyState(void)
                                        (void *) (SIZE + i + 1),
                                        true,
                                        NULL));
-    CU_ASSERT_EQUAL(SIZE, vdo_int_map_size(map));
+    CU_ASSERT_EQUAL(SIZE, vdo_hash_map_size(map));
   }
 
   vdo_hash_map_free(uds_forget(map));

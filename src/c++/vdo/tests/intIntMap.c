@@ -75,13 +75,13 @@ void freeIntIntMap(IntIntMap **mapPtr)
 /**********************************************************************/
 size_t intIntMapSize(const IntIntMap *map)
 {
-  return vdo_int_map_size(map->map);
+  return vdo_hash_map_size(map->map);
 }
 
 /**********************************************************************/
 bool intIntMapGet(IntIntMap *map, uint64_t key, uint64_t *value)
 {
-  IntHolder *holder = vdo_int_map_get(map->map, key);
+  IntHolder *holder = vdo_hash_map_get(map->map, &key);
   if (holder == NULL) {
     return false;
   }

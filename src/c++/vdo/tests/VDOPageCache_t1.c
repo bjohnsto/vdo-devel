@@ -92,7 +92,7 @@ static void validatePage(struct vdo_completion *completion)
   struct vio              *vio = as_vio(completion);
   physical_block_number_t  pbn = pbn_from_vio_bio(vio->bio);
 
-  if (vdo_int_map_get(pageMap, pbn) != NULL) {
+  if (vdo_hash_map_get(pageMap, &pbn) != NULL) {
     struct block_map_page *page = (struct block_map_page *) vio->data;
     CU_ASSERT_EQUAL(pbn, vdo_get_block_map_page_pbn(page));
   }
@@ -657,7 +657,7 @@ shouldBlock(struct vdo_completion *completion,
  **/
 static void checkPageAction(struct vdo_completion *completion)
 {
-  struct page_info *info = vdo_int_map_get(cache->page_map, pageCheck.pbn);
+  struct page_info *info = vdo_hash_map_get(cache->page_map, &pageCheck.pbn);
   CU_ASSERT_PTR_NOT_NULL(info);
   CU_ASSERT_PTR_EQUAL(info, cache->last_found);
   CU_ASSERT_EQUAL(info->pbn, pageCheck.pbn);

@@ -53,7 +53,7 @@ static bool latchSlab(struct vio              *vio,
                       slab_count_t             slabNumber,
                       physical_block_number_t  pbn)
 {
-  struct vio *latchedSlabVIO = vdo_int_map_get(latchedVIOs, slabNumber);
+  struct vio *latchedSlabVIO = vdo_hash_map_get(latchedVIOs, &slabNumber);
   if (latchedSlabVIO != LATCH_DESIRED) {
     return true;
   }
@@ -160,7 +160,7 @@ void setupSlabLoadingLatch(slab_count_t slabNumber)
 /**********************************************************************/
 static bool isSlabLatched(slab_count_t slabNumber, struct vio **latchedVIO)
 {
-  struct vio *latchedSlabVIO = vdo_int_map_get(latchedVIOs, slabNumber);
+  struct vio *latchedSlabVIO = vdo_hash_map_get(latchedVIOs, &slabNumber);
   bool isLatched = ((latchedSlabVIO != NULL)
                     && (latchedSlabVIO != LATCH_DESIRED));
   if (isLatched && (latchedVIO != NULL)) {
@@ -205,7 +205,7 @@ void releaseSlabLatch(slab_count_t slabNumber)
 {
   uds_lock_mutex(&mutex);
   struct vio *latchedSlabVIO = vdo_int_map_remove(latchedVIOs, slabNumber);
-  if (vdo_int_map_size(latchedVIOs) == 0) {
+  if (vdo_hash_map_size(latchedVIOs) == 0) {
     removeCompletionEnqueueHook(latchReferenceBlockIO);
     latchOperation = LATCH_UNSET;
   }

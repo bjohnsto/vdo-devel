@@ -50,7 +50,7 @@ static bool latchVIO(void *context)
   }
 
   physical_block_number_t  pbn     = pbnFromVIO(vio);
-  VIOLatch                *latched = vdo_int_map_get(latchedVIOs, pbn);
+  VIOLatch                *latched = vdo_hash_map_get(latchedVIOs, &pbn);
   if (latched == NULL) {
     return false;
   }
@@ -110,7 +110,7 @@ void tearDownLatchUtils(void)
   latchedVIOHook   = NULL;
   latchAttemptHook = NULL;
   waitCondition    = NULL;
-  CU_ASSERT_EQUAL(vdo_int_map_size(latchedVIOs), 0);
+  CU_ASSERT_EQUAL(vdo_hash_map_size(latchedVIOs), 0);
   vdo_hash_map_free(uds_forget(latchedVIOs));
   CU_ASSERT(list_empty(&latches));
   initialized = false;
@@ -188,7 +188,7 @@ void clearLatch(physical_block_number_t pbn)
 static bool checkForBlockedVIO(void *context)
 {
   VIOLatch *latched
-    = vdo_int_map_get(latchedVIOs, *((physical_block_number_t *) context));
+    = vdo_hash_map_get(latchedVIOs, (physical_block_number_t *) context);
   CU_ASSERT_PTR_NOT_NULL(latched);
   return (latched->vio != NULL);
 }
