@@ -618,11 +618,11 @@ static void addCompletionEnqueueHookLocked(CompletionHook *function)
 
   CompletionHookEntry *old;
   AsyncLayer *asyncLayer = asAsyncLayer();
-  VDO_ASSERT_SUCCESS(vdo_int_map_put(asyncLayer->completionEnqueueHooksMap,
-                                     (uintptr_t) function,
-                                     hook,
-                                     false,
-                                     (void **) &old));
+  VDO_ASSERT_SUCCESS(vdo_hash_map_put(asyncLayer->completionEnqueueHooksMap,
+				      (uintptr_t *)&function,
+				      hook,
+				      false,
+				      (void **) &old));
   CU_ASSERT_PTR_NULL(old);
   list_add_tail(&hook->listEntry, &asyncLayer->completionEnqueueHooks);
   asyncLayer->completionEnqueueHooksCacheValid = false;

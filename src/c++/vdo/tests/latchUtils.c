@@ -135,11 +135,11 @@ static bool setLatchLocked(void *context)
   list_add_tail(&latch->latch_entry, &latches);
 
   VIOLatch *prior;
-  VDO_ASSERT_SUCCESS(vdo_int_map_put(latchedVIOs,
-                                     pbn,
-                                     latch,
-                                     false,
-                                     (void **) &prior));
+  VDO_ASSERT_SUCCESS(vdo_hash_map_put(latchedVIOs,
+				      &pbn,
+				      latch,
+				      false,
+				      (void **) &prior));
   CU_ASSERT_PTR_NULL(prior);
   return false;
 }

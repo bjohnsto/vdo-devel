@@ -63,11 +63,11 @@ static void wrapCompletion(struct vdo_completion *completion,
 
   SavedActions *old;
   uds_lock_mutex(&mutex);
-  VDO_ASSERT_SUCCESS(vdo_int_map_put(wrapMap,
-                                     (uintptr_t) completion,
-                                     actions,
-                                     false,
-                                     (void **) &old));
+  VDO_ASSERT_SUCCESS(vdo_hash_map_put(wrapMap,
+				      (uintptr_t *)&completion,
+				      actions,
+				      false,
+				      (void **) &old));
   uds_unlock_mutex(&mutex);
   CU_ASSERT_PTR_NULL(old);
 
@@ -98,11 +98,11 @@ static bool runSaved(struct vdo_completion *completion)
 
   uds_lock_mutex(&mutex);
   SavedActions *actions = vdo_int_map_remove(wrapMap, (uintptr_t) completion);
-  VDO_ASSERT_SUCCESS(vdo_int_map_put(enqueueMap,
-                                     (uintptr_t) completion,
-                                     &requeued,
-                                     false,
-                                     (void **) &old));
+  VDO_ASSERT_SUCCESS(vdo_hash_map_put(enqueueMap,
+				      (uintptr_t *)&completion,
+				      &requeued,
+				      false,
+				      (void **) &old));
   uds_unlock_mutex(&mutex);
 
   CU_ASSERT_PTR_NOT_NULL(actions);

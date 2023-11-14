@@ -108,7 +108,7 @@ int intIntMapPut(IntIntMap *map,
 
   IntHolder *holder;
   result
-    = vdo_int_map_put(map->map, key, newHolder, update, (void **) &holder);
+    = vdo_hash_map_put(map->map, &key, newHolder, update, (void **) &holder);
   if (result != VDO_SUCCESS) {
     uds_free(newHolder);
     return result;

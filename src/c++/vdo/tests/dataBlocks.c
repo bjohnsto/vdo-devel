@@ -108,11 +108,11 @@ char *getDataBlock(block_count_t index)
   }
 
   char *block;
-  VDO_ASSERT_SUCCESS(vdo_int_map_put(dataBlocks,
-                                     index,
-                                     buffer,
-                                     false,
-                                     (void **) &block));
+  VDO_ASSERT_SUCCESS(vdo_hash_map_put(dataBlocks,
+				      &index,
+				      buffer,
+				      false,
+				      (void **) &block));
   if (block == NULL) {
     block = buffer;
     buffer = NULL;

@@ -57,7 +57,7 @@ static void testSingletonMap(void)
   int key = random();
   void *value = &key;
   void *oldValue = &value;
-  UDS_ASSERT_SUCCESS(vdo_int_map_put(map, key, value, true, &oldValue));
+  UDS_ASSERT_SUCCESS(vdo_hash_map_put(map, &key, value, true, &oldValue));
 
   // The key must not have been mapped before.
   CU_ASSERT_PTR_NULL(oldValue);
@@ -68,7 +68,7 @@ static void testSingletonMap(void)
   char foo;
   void *value2 = &foo;
   void *oldValue2 = NULL;
-  UDS_ASSERT_SUCCESS(vdo_int_map_put(map, key, value2, false, &oldValue2));
+  UDS_ASSERT_SUCCESS(vdo_hash_map_put(map, &key, value2, false, &oldValue2));
   CU_ASSERT_PTR_EQUAL(value, oldValue2);
   verifySingletonMap(map, key, value);
 
@@ -90,7 +90,7 @@ static void testSingletonMap(void)
   // Replace the singleton key.
   void *value3 = &value;
   oldValue = &value;
-  UDS_ASSERT_SUCCESS(vdo_int_map_put(map, key, value3, true, &oldValue));
+  UDS_ASSERT_SUCCESS(vdo_hash_map_put(map, &key, value3, true, &oldValue));
 
   // The previous mapping value must be returned in oldValue.
   CU_ASSERT_PTR_EQUAL(value, oldValue);
@@ -104,7 +104,7 @@ static void testSingletonMap(void)
   CU_ASSERT_PTR_NULL(vdo_hash_map_get(map, &key));
 
   // Try to add the value again.
-  UDS_ASSERT_SUCCESS(vdo_int_map_put(map, key, value2, false, &oldValue));
+  UDS_ASSERT_SUCCESS(vdo_hash_map_put(map, &key, value2, false, &oldValue));
   CU_ASSERT_PTR_EQUAL(NULL, oldValue);
   verifySingletonMap(map, key, value2);
 
@@ -128,7 +128,7 @@ static void test16BitMap(void)
   for (int key = 0; key <= U16_MAX; key++) {
     CU_ASSERT_EQUAL(key, vdo_hash_map_size(map));
     CU_ASSERT_PTR_NULL(vdo_hash_map_get(map, &key));
-    UDS_ASSERT_SUCCESS(vdo_int_map_put(map, key, &values[key], true, NULL));
+    UDS_ASSERT_SUCCESS(vdo_hash_map_put(map, &key, &values[key], true, NULL));
     CU_ASSERT_PTR_EQUAL(&values[key], vdo_hash_map_get(map, &key));
   }
   CU_ASSERT_EQUAL(1 << 16, vdo_hash_map_size(map));
@@ -149,7 +149,7 @@ static void test16BitMap(void)
       CU_ASSERT_PTR_NULL(value);
     }
     void *newValue = &values[U16_MAX - key];
-    UDS_ASSERT_SUCCESS(vdo_int_map_put(map, key, newValue, true, NULL));
+    UDS_ASSERT_SUCCESS(vdo_hash_map_put(map, &key, newValue, true, NULL));
   }
 
   // Verify the mapping.
@@ -182,18 +182,19 @@ static void testSteadyState(void)
   // Fill the map with mappings of { 0 -> 1 }, { 1 -> 2 }, etc.
   for (size_t i = 0; i < SIZE; i++) {
     CU_ASSERT_EQUAL(i, vdo_hash_map_size(map));
-    UDS_ASSERT_SUCCESS(vdo_int_map_put(map, i, (void *) (i + 1), true, NULL));
+    UDS_ASSERT_SUCCESS(vdo_hash_map_put(map, &i, (void *) (i + 1), true, NULL));
   }
 
   // Remove mappings one by one and replace them with a different key,
   // exercising the operation of the map at a steady-state of N entries.
   for (size_t i = 0; i < (10 * SIZE); i++) {
+    uint64_t key = SIZE + i;
     CU_ASSERT_PTR_EQUAL((void *) (i + 1), vdo_int_map_remove(map, i));
-    UDS_ASSERT_SUCCESS(vdo_int_map_put(map,
-                                       SIZE + i,
-                                       (void *) (SIZE + i + 1),
-                                       true,
-                                       NULL));
+    UDS_ASSERT_SUCCESS(vdo_hash_map_put(map,
+					&key,
+					(void *) (SIZE + i + 1),
+					true,
+					NULL));
     CU_ASSERT_EQUAL(SIZE, vdo_hash_map_size(map));
   }
 

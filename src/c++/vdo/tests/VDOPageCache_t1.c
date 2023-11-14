@@ -116,10 +116,10 @@ static void checkPageWritten(struct vdo_completion *completion)
 
   void *oldPage;
   if (!page->header.initialized) {
-    VDO_ASSERT_SUCCESS(vdo_int_map_put(pageMap, pbn, pageMap, false, &oldPage));
+    VDO_ASSERT_SUCCESS(vdo_hash_map_put(pageMap, &pbn, pageMap, false, &oldPage));
     CU_ASSERT_PTR_NULL(oldPage);
   } else {
-    VDO_ASSERT_SUCCESS(vdo_int_map_put(pageMap, pbn, cache, true, &oldPage));
+    VDO_ASSERT_SUCCESS(vdo_hash_map_put(pageMap, &pbn, cache, true, &oldPage));
     CU_ASSERT_PTR_NOT_NULL(oldPage);
   }
 
