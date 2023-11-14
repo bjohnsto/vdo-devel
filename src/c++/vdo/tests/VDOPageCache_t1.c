@@ -15,7 +15,6 @@
 
 #include "block-map.h"
 #include "completion.h"
-#include "int-map.h"
 #include "slab-depot.h"
 #include "status-codes.h"
 #include "vio.h"

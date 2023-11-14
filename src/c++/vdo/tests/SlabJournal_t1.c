@@ -15,7 +15,6 @@
 
 #include "admin-state.h"
 #include "encodings.h"
-#include "int-map.h"
 #include "slab-depot.h"
 #include "vdo.h"
 #include "vio.h"

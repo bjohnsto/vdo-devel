@@ -13,7 +13,7 @@
 #include "memory-alloc.h"
 #include "syscalls.h"
 
-#include "int-map.h"
+#include "hash-map.h"
 #include "status-codes.h"
 #include "types.h"
 

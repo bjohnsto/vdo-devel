@@ -12,7 +12,6 @@
 
 #include "memory-alloc.h"
 
-#include "int-map.h"
 #include "types.h"
 
 #include "asyncLayer.h"

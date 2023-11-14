@@ -13,7 +13,7 @@
 #include "syscalls.h"
 
 #include "constants.h"
-#include "int-map.h"
+#include "hash-map.h"
 
 #include "vdoAsserts.h"
 
