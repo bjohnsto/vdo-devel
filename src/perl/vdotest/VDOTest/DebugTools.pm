@@ -324,7 +324,7 @@ sub runAdaptLVMScript {
 
   # The EXTRA_LVM_ARGS are needed for our environment, but in a typical default
   # LVM configuration environment, they won't be needed.
-  my $cmdBase = "sudo EXTRA_LVM_ARGS='-K --config devices/scan_lvs=1' " .
+  my $cmdBase = "sudo EXTRA_LVM_ARGS='-K' EXTRA_LVM_CONFIG_ARGS='devices {use_devicesfile=0 scan_lvs=1}' " .
                 "$shellUtility";
 
   # Switch the backing store to r/w so we can work with it.

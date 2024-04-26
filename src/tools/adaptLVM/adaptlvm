@@ -19,6 +19,7 @@ set -euE -o pipefail
 
 TOOL=$(basename $0)
 
+LVM_CONFIG_ARGS=${EXTRA_LVM_CONFIG_ARGS:-}
 LVM_EXTRA_ARGS=${EXTRA_LVM_ARGS:-}
 
 BACKINGTABLE=
@@ -81,7 +82,7 @@ printUsage() {
 # Disassemble the temporary Read/Write volume and re-activate the original volume.
 setRO() {
   dmsetup remove ${VG}-${LV}
-  lvchange -ay ${LVM_EXTRA_ARGS} ${VG}/${LV}
+  lvchange -ay ${LVM_EXTRA_ARGS} --config "${LVM_CONFIG_ARGS}" ${VG}/${LV}
 
   if [ -b ${DEV_VG_LV} ]; then
     echo "LVMVDO volume re-activated at ${DEV_VG_LV}"
@@ -100,7 +101,7 @@ setRW() {
     printUsage
   fi
 
-  VPOOL_NAME=$(lvdisplay ${LVMVDO} | awk '/LV VDO Pool name/ {print $NF}')
+  VPOOL_NAME=$(lvdisplay --config "${LVM_CONFIG_ARGS}" ${LVMVDO} | awk '/LV VDO Pool name/ {print $NF}')
   DM_VPOOL="${VG}-${VPOOL_NAME}"
   DM_VDATA="${VG}-${VPOOL_NAME}_vdata"
 
@@ -117,7 +118,7 @@ setRW() {
 
   # Deactivate the existing volume so that it is only being used from one
   # place.
-  lvchange -an ${LVM_EXTRA_ARGS} ${DEV_VG_LV}
+  lvchange -an ${LVM_EXTRA_ARGS} --config "${LVM_CONFIG_ARGS}" ${DEV_VG_LV}
 
   # Create the temporary device with the name containing the parameters we need
   # to undo this operation later.
@@ -136,6 +137,7 @@ trap "cleanup 2" 2
 test "$#" -ne 2 && printUsage
 
 echo "Received extra LVM Args '${LVM_EXTRA_ARGS}'"
+echo "Received extra LVM Config Args '${LVM_CONFIG_ARGS}'"
 
 applyConversion $1 $2
 
