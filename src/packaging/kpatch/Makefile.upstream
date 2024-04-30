@@ -14,6 +14,7 @@ dm-vdo-objs := \
 	dm-vdo-target.o \
 	dump.o \
 	encodings.o \
+	formatter.o \
 	errors.o \
 	flush.o \
 	funnel-queue.o \

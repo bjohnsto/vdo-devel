@@ -16,12 +16,13 @@ BASE_OBJS :=     			\
         dedupe.o                        \
         dm-vdo-target.o                 \
 	encodings.o			\
-	flush.o				\
+	formatter.o			\
+	flush.o			\
 	int-map.o			\
 	io-submitter.o			\
 	logical-zone.o			\
 	packer.o			\
-	physical-zone.o			\
+	physical-zone.o		\
 	pool-sysfs.o			\
 	pool-sysfs-stats.o		\
 	priority-table.o		\

@@ -51,6 +51,7 @@
 #include "data-vio.h"
 #include "dedupe.h"
 #include "encodings.h"
+#include "formatter.h"
 #include "funnel-workqueue.h"
 #include "io-submitter.h"
 #include "logical-zone.h"
@@ -505,8 +506,14 @@ static int initialize_vdo(struct vdo *vdo, struct device_config *config,
 	mutex_init(&vdo->stats_mutex);
 	result = read_geometry_block(vdo);
 	if (result != VDO_SUCCESS) {
-		*reason = "Could not load geometry block";
-		return result;
+		result = format_vdo(vdo, reason);
+		if (result != VDO_SUCCESS) {
+			return result;
+		}
+		result = read_geometry_block(vdo);
+		if (result != VDO_SUCCESS) {
+			return result;
+		}
 	}
 
 	result = initialize_thread_config(config->thread_counts, &vdo->thread_config);

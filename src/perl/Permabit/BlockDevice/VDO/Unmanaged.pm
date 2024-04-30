@@ -132,6 +132,21 @@ sub makeConfigString {
     }
   }
 
+  if (defined($self->{sparse})) {
+    # magic value -1 suppresses the option completely
+    if ($self->{sparse} != -1) {
+      push(@optional,
+           ["index_sparse", $self->{sparse} ? "on" : "off"]);
+    }
+  }
+
+  if (defined($self->{memorySize})) {
+    # magic value -1 suppresses the option completely
+    if ($self->{memorySize} != -1) {
+      push(@optional, ["index_memory", "$self->{memorySize}"]);
+    }
+  }
+
   my $storageSpecification
     = ($self->{useMajorMinor}
        ? join( ":", $self->getStorageDevice()->getDeviceMajorMinor())
@@ -238,14 +253,15 @@ sub makeConfigString {
 ##
 sub activate {
   my ($self) = assertNumArgs(1, @_);
+  my $configString = $self->makeConfigString();
   if (!$self->{_formatted}) {
-    $self->formatVDO();
+#   $self->formatVDO();
     $self->{_formatted} = 1;
   }
 
   $self->runOnHost(["sudo dmsetup targets",
                     "sudo dmsetup create $self->{deviceName} --table \""
-                    . $self->makeConfigString() . '"',
+                    . $configString . '"',
                     "sudo dmsetup status",
                     "sudo dmsetup table $self->{deviceName}",
                     "sudo dmsetup info $self->{deviceName}"
