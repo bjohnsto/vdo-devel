@@ -16,6 +16,7 @@ BASE_OBJS :=     			\
         dedupe.o                        \
         dm-vdo-target.o                 \
 	encodings.o			\
+	formatter.o			\
 	flush.o				\
 	int-map.o			\
 	io-submitter.o			\

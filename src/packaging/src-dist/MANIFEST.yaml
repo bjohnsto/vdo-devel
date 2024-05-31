@@ -235,6 +235,8 @@ tarballs:
             - encodings.h
             - flush.c
             - flush.h
+            - formatter.c
+            - formatter.h
             - funnel-workqueue.c
             - funnel-workqueue.h
             - histogram.c
