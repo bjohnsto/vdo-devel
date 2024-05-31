@@ -51,6 +51,7 @@
 #include "data-vio.h"
 #include "dedupe.h"
 #include "encodings.h"
+#include "formatter.h"
 #include "funnel-workqueue.h"
 #include "io-submitter.h"
 #include "logical-zone.h"
@@ -491,7 +492,7 @@ static int register_vdo(struct vdo *vdo)
 static int initialize_vdo(struct vdo *vdo, struct device_config *config,
 			  unsigned int instance, char **reason)
 {
-	int result;
+	int result, formatted;
 	zone_count_t i;
 
 	vdo->device_config = config;
@@ -503,6 +504,23 @@ static int initialize_vdo(struct vdo *vdo, struct device_config *config,
 	vdo_initialize_completion(&vdo->admin.completion, vdo, VDO_ADMIN_COMPLETION);
 	init_completion(&vdo->admin.callback_sync);
 	mutex_init(&vdo->stats_mutex);
+
+	// Check to see whether we should format the device
+	result = vdo_is_formatted(vdo, &formatted);
+	if (result != VDO_SUCCESS) {
+		*reason = "Could not determine whether layout is empty";
+		return result;
+	}
+
+	// This is here to distiguish between regular error and not formattable.
+	if (formatted == 0) {
+		vdo_log_info("Attempt to format the device");
+		result = vdo_format(vdo, reason);
+		if (result != VDO_SUCCESS) {
+			return result;
+		}
+	}
+
 	result = read_geometry_block(vdo);
 	if (result != VDO_SUCCESS) {
 		*reason = "Could not load geometry block";

@@ -93,9 +93,6 @@ static const char helpString[] =
   "    --uds-sparse\n"
   "       Specify whether or not to use a sparse index.\n"
   "\n"
-  "    --verbose\n"
-  "       Describe what is being formatted and with what parameters.\n"
-  "\n"
   "    --version\n"
   "       Show the version of vdoformat.\n"
   "\n";
@@ -117,64 +114,6 @@ static char optionString[] = "fhil:S:m:svV";
 static void usage(const char *progname, const char *usageOptionsString)
 {
   errx(1, "Usage: %s%s\n", progname, usageOptionsString);
-}
-
-/**********************************************************************/
-static void printReadableSize(size_t size)
-{
-  const char *UNITS[] = { "B", "KB", "MB", "GB", "TB", "PB" };
-  unsigned int unit = 0;
-  float floatSize = 0;
-  while ((size >= 1024) && (unit < ARRAY_SIZE(UNITS) - 1)) {
-    floatSize = (float)size / 1024;
-    size = size / 1024;
-    unit++;
-  };
-  if (unit > 0) {
-    printf("%4.2f %s", floatSize, UNITS[unit]);
-  } else {
-    printf("%zu %s", size, UNITS[unit]);
-  }
-}
-
-/**********************************************************************/
-static void describeCapacity(const UserVDO *vdo,
-                             uint64_t       logicalSize,
-                             unsigned int   slabBits)
-{
-  if (logicalSize == 0) {
-    printf("Logical blocks defaulted to %llu blocks.\n",
-           (unsigned long long) vdo->states.vdo.config.logical_blocks);
-  }
-
-  struct slab_config slabConfig = vdo->states.slab_depot.slab_config;
-  size_t totalSize = vdo->slabCount * slabConfig.slab_blocks * VDO_BLOCK_SIZE;
-  size_t maxTotalSize = MAX_VDO_SLABS * slabConfig.slab_blocks
-                          * VDO_BLOCK_SIZE;
-
-  printf("The VDO volume can address ");
-  printReadableSize(totalSize);
-  printf(" in %u data slab%s", vdo->slabCount,
-         ((vdo->slabCount != 1) ? "s" : ""));
-  if (vdo->slabCount > 1) {
-    printf(", each ");
-    printReadableSize(slabConfig.slab_blocks * VDO_BLOCK_SIZE);
-  }
-  printf(".\n");
-
-  if (vdo->slabCount < MAX_VDO_SLABS) {
-    printf("It can grow to address at most ");
-    printReadableSize(maxTotalSize);
-    printf(" of physical storage in %u slabs.\n", MAX_VDO_SLABS);
-    if (slabBits < MAX_VDO_SLAB_BITS) {
-      printf("If a larger maximum size might be needed, use bigger slabs.\n");
-    }
-  } else {
-    printf("The volume has the maximum number of slabs and so cannot grow.\n");
-    if (slabBits < MAX_VDO_SLAB_BITS) {
-      printf("Consider using larger slabs to allow the volume to grow.\n");
-    }
-  }
 }
 
 static const char MSG_FAILED_SIG_OFFSET[] = "Failed to get offset of the %s" \
@@ -409,7 +348,6 @@ int main(int argc, char *argv[])
 
   int c;
   uint64_t sizeArg;
-  static bool verbose = false;
   static bool force   = false;
 
   while ((c = getopt_long(argc, argv, optionString, options, NULL)) != -1) {
@@ -446,10 +384,6 @@ int main(int argc, char *argv[])
 
     case 's':
       configStrings.sparse = "1";
-      break;
-
-    case 'v':
-      verbose = true;
       break;
 
     case 'V':
@@ -543,79 +477,18 @@ int main(int argc, char *argv[])
     errx(result, "checkForSignaturesUsingBlkid failed on '%s'", filename);
   }
 
-  struct index_config indexConfig;
-  result = parseIndexConfig(&configStrings, &indexConfig);
-  if (result != VDO_SUCCESS) {
-    errx(result, "parseIndexConfig failed: %s",
-         uds_string_error(result, errorBuffer, sizeof(errorBuffer)));
-  }
-
-  // Zero out the UDS superblock in case there's already a UDS there.
+  // Zero out the geometry block and UDS superblock in case there is something already
+  // there.
   char *zeroBuffer;
-  result = layer->allocateIOBuffer(layer, VDO_BLOCK_SIZE,
-                                   "zero buffer", &zeroBuffer);
+  result = layer->allocateIOBuffer(layer, VDO_BLOCK_SIZE * 2, "zero buffer", &zeroBuffer);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  result = layer->writer(layer, 1, 1, zeroBuffer);
+  result = layer->writer(layer, 0, 2, zeroBuffer);
   if (result != VDO_SUCCESS) {
     return result;
   }
-
-  if (verbose) {
-    if (logicalSize > 0) {
-      printf("Formatting '%s' with %llu logical and %llu"
-             " physical blocks of %u bytes.\n",
-             filename, (unsigned long long) config.logical_blocks,
-             (unsigned long long) config.physical_blocks,
-             VDO_BLOCK_SIZE);
-    } else {
-      printf("Formatting '%s' with default logical and %llu"
-             " physical blocks of %u bytes.\n",
-             filename, (unsigned long long) config.physical_blocks,
-             VDO_BLOCK_SIZE);
-    }
-  }
-
-  result = formatVDO(&config, &indexConfig, layer);
-  if (result != VDO_SUCCESS) {
-    const char *extraHelp = "";
-    if (result == VDO_TOO_MANY_SLABS) {
-      extraHelp = "\nReduce the device size or increase the slab size";
-    }
-    if (result == VDO_NO_SPACE) {
-      block_count_t minVDOBlocks = 0;
-      int calcResult = calculateMinimumVDOFromConfig(&config,
-                                                     &indexConfig,
-                                                     &minVDOBlocks);
-      if (calcResult != VDO_SUCCESS) {
-        errx(calcResult,
-             "Unable to calculate minimum required VDO size");
-      } else {
-        uint64_t minimumSize = minVDOBlocks * VDO_BLOCK_SIZE;
-        fprintf(stderr,
-                "Minimum required size for VDO volume: %llu bytes\n",
-                (unsigned long long) minimumSize);
-      }
-    }
-    errx(result, "formatVDO failed on '%s': %s%s",
-         filename,
-         uds_string_error(result, errorBuffer, sizeof(errorBuffer)),
-         extraHelp);
-  }
-
-  UserVDO *vdo;
-  result = loadVDO(layer, true, &vdo);
-  if (result != VDO_SUCCESS) {
-    errx(result, "unable to verify configuration after formatting '%s'",
-         filename);
-  }
-
-  // Display default logical size, max capacity, etc.
-  describeCapacity(vdo, logicalSize, slabBits);
-
-  freeUserVDO(&vdo);
 
   // Close and sync the underlying file.
   layer->destroy(&layer);

@@ -150,7 +150,7 @@ int writeVolumeGeometryWithVersion(PhysicalLayer          *layer,
   memcpy(block, VDO_GEOMETRY_MAGIC_NUMBER, VDO_GEOMETRY_MAGIC_NUMBER_SIZE);
   offset += VDO_GEOMETRY_MAGIC_NUMBER_SIZE;
 
-  result = encode_volume_geometry(block, &offset, geometry, version);
+  result = vdo_encode_volume_geometry(block, &offset, geometry, version);
   if (result != VDO_SUCCESS) {
     vdo_free(block);
     return result;

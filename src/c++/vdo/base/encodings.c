@@ -293,9 +293,8 @@ static void decode_volume_geometry(u8 *buffer, size_t *offset,
 	};
 }
 
-#if (defined(VDO_USER) || defined(INTERNAL))
 /**
- * encode_volume_geometry() - Encode the on-disk representation of a volume geometry into a buffer.
+ * vdo_encode_volume_geometry() - Encode the on-disk representation of a volume geometry into a buffer.
  * @buffer: A buffer to store the encoding.
  * @offset: The offset in the buffer at which to encode.
  * @geometry: The geometry to encode.
@@ -303,8 +302,8 @@ static void decode_volume_geometry(u8 *buffer, size_t *offset,
  *
  * Return: VDO_SUCCESS or an error
  */
-int encode_volume_geometry(u8 *buffer, size_t *offset,
-			   const struct volume_geometry *geometry, u32 version)
+int vdo_encode_volume_geometry(u8 *buffer, size_t *offset,
+			       const struct volume_geometry *geometry, u32 version)
 {
 	enum volume_region_id id;
 	const struct header *header;
@@ -335,10 +334,9 @@ int encode_volume_geometry(u8 *buffer, size_t *offset,
 		buffer[(*offset)++] = 0;
 
 	return VDO_ASSERT(header->size == (*offset + sizeof(u32)),
-		          "should have included up to the geometry checksum");
+			  "should have included up to the geometry checksum");
 }
 
-#endif /* VDO_USER */
 /**
  * vdo_parse_geometry_block() - Decode and validate an encoded geometry block.
  * @block: The encoded geometry block.
@@ -1034,6 +1032,7 @@ STATIC void encode_layout(u8 *buffer, size_t *offset, const struct layout *layou
 	vdo_encode_header(buffer, offset, &header);
 
 	initial_offset = *offset;
+
 	encode_u64_le(buffer, offset, layout->first_free);
 	encode_u64_le(buffer, offset, layout->last_free);
 	buffer[(*offset)++] = layout->num_partitions;

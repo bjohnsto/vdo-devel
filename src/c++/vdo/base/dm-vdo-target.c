@@ -193,6 +193,10 @@ static const u8 POOL_NAME_ARG_INDEX[] = { 8, 10, 8 };
 /* Grow the bit array by this many bits when needed */
 #define BIT_COUNT_INCREMENT 100
 
+/* For validating slab bits config parameter */
+#define VDO_MIN_SLAB_BITS 4
+#define VDO_DEFAULT_SLAB_BITS 19
+
 struct instance_tracker {
 	unsigned int bit_count;
 	unsigned long *words;
@@ -446,6 +450,37 @@ static inline int __must_check parse_bool(const char *bool_str, const char *true
 }
 
 /**
+ * parse_mem() - Parse a two-valued option into an index memory value.
+ * @mem_str: The string value to convert to a memory value.
+ * @mem_ptr: A pointer to return the memory value in.
+ *
+ * Return: VDO_SUCCESS or an error
+ */
+static inline int __must_check parse_mem(const char *mem_str, unsigned int *mem_ptr)
+{
+	uds_memory_config_size_t mem;
+
+	if (strcmp(mem_str, "0.25") == 0)
+		mem = UDS_MEMORY_CONFIG_256MB;
+	else if ((strcmp(mem_str, "0.5") == 0)
+		   || (strcmp(mem_str, "0.50") == 0))
+		mem = UDS_MEMORY_CONFIG_512MB;
+	else if (strcmp(mem_str, "0.75") == 0)
+		mem = UDS_MEMORY_CONFIG_768MB;
+	else {
+		unsigned int number;
+		int result;
+
+		result = kstrtouint(mem_str, 10, &number);
+		if (result != VDO_SUCCESS)
+			return -EINVAL;
+		mem = number;
+	}
+	*mem_ptr = (unsigned int)mem;
+	return VDO_SUCCESS;
+}
+
+/**
  * process_one_thread_config_spec() - Process one component of a thread parameter configuration
  *				      string and update the configuration data structure.
  * @thread_param_type: The type of thread specified.
@@ -640,7 +675,15 @@ static int process_one_key_value_pair(const char *key, unsigned int value,
 		}
 		config->max_discard_blocks = value;
 		return VDO_SUCCESS;
+	} else if (strcmp(key, "slabBits") == 0) {
+		if (value < VDO_MIN_SLAB_BITS || value > MAX_VDO_SLAB_BITS) {
+			vdo_log_error("optional parameter error: invalid slab bits, must be %u-%u", VDO_MIN_SLAB_BITS, MAX_VDO_SLAB_BITS);
+			return -EINVAL;
+		}
+		config->slab_bits = value;
+		return VDO_SUCCESS;
 	}
+
 	/* Handles unknown key names */
 	return process_one_thread_config_spec(key, value, &config->thread_counts);
 }
@@ -665,6 +708,12 @@ static int parse_one_key_value_pair(const char *key, const char *value,
 
 	if (strcmp(key, "compression") == 0)
 		return parse_bool(value, "on", "off", &config->compression);
+
+	if (strcmp(key, "index_sparse") == 0)
+		return parse_bool(value, "on", "off", &config->index_sparse);
+
+	if (strcmp(key, "index_memory") == 0)
+		return parse_mem(value, &config->index_memory);
 
 	/* The remaining arguments must have integral values. */
 	result = kstrtouint(value, 10, &count);
@@ -824,6 +873,9 @@ static int parse_device_config(int argc, char **argv, struct dm_target *ti,
 	config->max_discard_blocks = 1;
 	config->deduplication = true;
 	config->compression = false;
+	config->index_memory = UDS_MEMORY_CONFIG_256MB;
+	config->index_sparse = false;
+	config->slab_bits = VDO_DEFAULT_SLAB_BITS;
 
 	arg_set.argc = argc;
 	arg_set.argv = argv;
@@ -1607,6 +1659,9 @@ static int vdo_initialize(struct dm_target *ti, unsigned int instance,
 	vdo_log_debug("Block map maximum age  = %u", config->block_map_maximum_age);
 	vdo_log_debug("Deduplication          = %s", (config->deduplication ? "on" : "off"));
 	vdo_log_debug("Compression            = %s", (config->compression ? "on" : "off"));
+	vdo_log_debug("Index memory           = %u", config->index_memory);
+	vdo_log_debug("Index sparse           = %s", (config->index_sparse ? "on" : "off"));
+	vdo_log_debug("Slab bits              = %u", config->slab_bits);
 
 	vdo = vdo_find_matching(vdo_uses_device, config);
 	if (vdo != NULL) {
