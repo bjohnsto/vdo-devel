@@ -12,6 +12,7 @@
 #include "permassert.h"
 
 #include "constants.h"
+#include "indexer.h"
 #include "status-codes.h"
 #include "types.h"
 
@@ -1568,4 +1569,87 @@ int vdo_decode_super_block(u8 *buffer)
 	decode_u32_le(buffer, &offset, &saved_checksum);
 
 	return ((checksum != saved_checksum) ? VDO_CHECKSUM_MISMATCH : VDO_SUCCESS);
+}
+
+/**
+ * vdo_compute_index_blocks() - Compute the size that the indexer will take up.
+ * @index_config: The index config from which the blocks are calculated.
+ * @index_blocks_ptr: The number of blocks the index will use.
+ *
+ * Return: VDO_SUCCESS or an error code.
+ */
+int vdo_compute_index_blocks(const struct index_config *config,
+			     block_count_t *index_blocks_ptr)
+{
+	int result;
+	u64 index_bytes;
+
+	struct uds_parameters uds_parameters = {
+		.memory_size = config->mem,
+		.sparse = config->sparse,
+	};
+
+	result = uds_compute_index_size(&uds_parameters, &index_bytes);
+	if (result != UDS_SUCCESS)
+		return vdo_log_error_strerror(result, "error computing index size");
+
+#if defined(TEST_INTERNAL) || !defined(__KERNEL__)
+	block_count_t index_blocks = index_bytes / VDO_BLOCK_SIZE;
+
+	if ((((u64) index_blocks) * VDO_BLOCK_SIZE) != index_bytes) {
+		return vdo_log_error_strerror(VDO_PARAMETER_MISMATCH,
+			"index size must be a multiple of block size %d",
+			VDO_BLOCK_SIZE);
+	}
+	*index_blocks_ptr = index_blocks;
+#else
+	*index_blocks_ptr = index_bytes / VDO_BLOCK_SIZE;
+#endif
+	return VDO_SUCCESS;
+}
+
+/**
+ * vdo_initialize_volume_geometry() - Initialize the volume geometry so it can be written out.
+ * @nonce: The nonce to use to identify the vdo.
+ * @uuid: The uuid to use to identify the vdo.
+ * @index_config: The config used for structure initialization.
+ * @geometry: The volume geometry to initialize.
+ *
+ * Return: VDO_SUCCESS or an error code.
+ */
+int vdo_initialize_volume_geometry(nonce_t nonce, uuid_t *uuid,
+				   const struct index_config *index_config,
+				   struct volume_geometry *geometry)
+{
+	int result;
+	block_count_t index_blocks = 0;
+
+	if (index_config != NULL) {
+		result = vdo_compute_index_blocks(index_config, &index_blocks);
+		if (result != VDO_SUCCESS)
+			return result;
+	}
+
+	*geometry = (struct volume_geometry) {
+		/* This is for backwards compatibility. */
+		.unused = 0,
+		.nonce = nonce,
+		.bio_offset = 0,
+		.regions = {
+			[VDO_INDEX_REGION] = {
+				.id = VDO_INDEX_REGION,
+				.start_block = 1,
+			},
+			[VDO_DATA_REGION] = {
+				.id = VDO_DATA_REGION,
+				.start_block = 1 + index_blocks,
+			}
+		}
+	};
+
+	memcpy((unsigned char *) &(geometry->uuid), uuid, sizeof(uuid_t));
+	if (index_blocks > 0)
+		memcpy(&geometry->index_config, index_config, sizeof(struct index_config));
+
+	return VDO_SUCCESS;
 }

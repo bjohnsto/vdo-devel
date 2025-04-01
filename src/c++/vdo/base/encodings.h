@@ -1337,4 +1337,11 @@ static inline u32 vdo_crc32(const void *buf, unsigned long len)
 #endif /* __KERNEL__ */
 }
 
+int vdo_compute_index_blocks(const struct index_config *config,
+			     block_count_t *index_blocks_ptr);
+
+int vdo_initialize_volume_geometry(nonce_t nonce, uuid_t *uuid,
+				   const struct index_config *index_config,
+				   struct volume_geometry *geometry);
+
 #endif /* VDO_ENCODINGS_H */
