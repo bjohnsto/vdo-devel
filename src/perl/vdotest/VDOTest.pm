@@ -356,8 +356,11 @@ sub set_up {
     }
   }
 
-  foreach my $type (reverse(split('-', $self->{deviceType}))) {
-    $self->createTestDevice($type);
+  # if deviceType is none, don't create any devices
+  if ($self->{deviceType} ne 'none') {
+    foreach my $type (reverse(split('-', $self->{deviceType}))) {
+      $self->createTestDevice($type);
+    }
   }
 
   foreach my $host (@{$self->{nfsclientNames}}) {
@@ -846,6 +849,9 @@ sub tear_down {
     $stack->destroyAll();
     delete $self->{_storageStack};
 
+    # Clean up remaining entries in the LVM devices file after all devices are destroyed
+    $self->runTearDownStep(sub { $self->cleanupLVMDevicesFile(); });
+
     # Close the UserMachines because we are about to release our RSVP
     # reservations.
     map { $_->closeForRelease() } values(%{$self->{_machines}});
@@ -892,6 +898,38 @@ sub destroyDevice {
                                $self->setFailedTest("vdoAudit failed");
                              }
                            });
+  }
+}
+
+########################################################################
+# Clean up any remaining entries in the LVM devices file after all devices
+# are destroyed. This method only removes devices that were added during the test,
+# protecting any pre-existing devices by comparing against the initial state
+# captured at test startup.
+##
+sub cleanupLVMDevicesFile {
+  my ($self) = assertNumArgs(1, @_);
+
+  # Get all machines that might have LVM devices files to clean up
+  my @machines = values(%{$self->{_machines}});
+
+  foreach my $machine (@machines) {
+    my $machineName = $machine->getName();
+    $log->info("Cleaning up LVM devices file on $machineName");
+
+    # Check for bad devices
+    my @invalidDevices = $machine->getInvalidDevicesInLVMDevicesFile();
+    foreach my $deviceName (@invalidDevices) {
+      # Escape the device path for sed command (same logic as in BlockDevice.pm)
+      my $escapedDevicePath = $deviceName;
+      $escapedDevicePath =~ s/([\/\.])/\\$1/g;  # Escape forward slashes and dots
+
+      $machine->sendCommand("sudo sed -i '/DEVNAME=$escapedDevicePath\\b/d' "
+                            . "/etc/lvm/devices/system.devices 2>/dev/null");
+    }
+    my @finalDevices = $machine->getValidDevicesInLVMDevicesFile();
+    my @finalDeviceNames = map { $_->{deviceName} } @finalDevices;
+    $log->info("Final LVM devices on $machineName: " . join(", ", @finalDeviceNames));
   }
 }
 
