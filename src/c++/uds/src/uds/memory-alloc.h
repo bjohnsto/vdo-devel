@@ -38,11 +38,11 @@ int __must_check vdo_allocate_memory(size_t size, size_t align, const char *what
 			    __alignof__(typeof(**(PTR))), WHAT, PTR)
 
 /*
- * Allocate one object of an indicated type, followed by one or more elements of a second type,
- * logging an error if the allocation fails. The memory will be zeroed.
+ * Allocate a structure with a flexible array member, with a specified number of elements, logging
+ * an error if the allocation fails. The memory will be zeroed.
  *
  * @COUNT: The number of objects to allocate
- * @FIELD: The flexible array field at the end of the TYPE structure
+ * @FIELD: The flexible array field at the end of the structure
  * @WHAT: What is being allocated (for error logging)
  * @PTR: A pointer to hold the allocated memory
  *
