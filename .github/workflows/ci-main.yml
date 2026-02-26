@@ -1,7 +1,8 @@
-name: CI
+name: CI (main)
 
 on:
   pull_request_target:
+    branches: [ 'main' ]
     types: [ opened, reopened, ready_for_review, synchronize ]
   workflow_dispatch:
 

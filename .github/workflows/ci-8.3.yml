@@ -1,0 +1,26 @@
+name: CI (8.3)
+
+on:
+  pull_request_target:
+    branches: [ '8.3*' ]
+    types: [ opened, reopened, ready_for_review, synchronize ]
+  workflow_dispatch:
+
+# This allows a subsequently queued workflow run to interrupt previous runs
+concurrency:
+  group: '${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}'
+  cancel-in-progress: true
+
+jobs:
+  Run-Common-CI:
+    uses: dm-vdo/vdo-org-actions/.github/workflows/ci.yaml@main
+    with:
+      logfile: logs-${{ github.event.repository.owner.login }}-${{ github.event.repository.name }}-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
+      run-public-build: false
+      run-public-tests: false
+      private-runner-distro: rhel
+      run-private-build: true
+      private-build-action: make all
+      run-private-tests: true
+      private-tests-action: make jenkins
+    secrets: inherit
