@@ -1,8 +1,8 @@
-name: CI (main)
+name: CI (8.3)
 
 on:
   pull_request_target:
-    branches: [ 'main' ]
+    branches: [ '8.3*' ]
     types: [ opened, reopened, ready_for_review, synchronize ]
   workflow_dispatch:
 
@@ -16,29 +16,11 @@ jobs:
     uses: dm-vdo/vdo-org-actions/.github/workflows/ci.yaml@main
     with:
       logfile: logs-${{ github.event.repository.owner.login }}-${{ github.event.repository.name }}-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
-      run-public-build: true
-      public-build-action: make all
-      run-public-tests: true
-      public-tests-action: make oss-jenkins
-      public-tests-action-failure: |
-          cd logs
-          for i in *;
-          do
-            if [ -d "$i" ]; then
-              cd $i
-              for file in *::*.log;
-              do
-                [ -e "$file" ] || continue
-                mv "${file}" "${file/::/--}"
-              done
-              cd ..
-            else
-              mv "${i}" "${i/::/--}"
-            fi
-          done
+      run-public-build: false
+      run-public-tests: false
+      private-runner-distro: rhel
       run-private-build: true
       private-build-action: make all
       run-private-tests: true
       private-tests-action: make jenkins
     secrets: inherit
-   
