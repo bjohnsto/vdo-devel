@@ -40,7 +40,6 @@ my $log = Log::Log4perl->get_logger(__PACKAGE__);
 #
 # The leaf nodes in the hash will have a value containing the result
 # and time the test took or '-' if it has not been run yet.
-# 
 #
 # @param tree  The tree returned from dmtest list.
 #
@@ -107,7 +106,7 @@ sub hashesToTests {
 sub hashesToResult {
   my ($self, $data, $test) = assertNumArgs(3, @_);
   assertDefined($data, "no data to retrieve results from");
-  # using split function without Limit 
+  # using split function without Limit
   my @keys = split('/', $test);
   # displaying string after splitting
   foreach my $key (@keys) {
@@ -124,8 +123,11 @@ sub hashesToResult {
 sub testRunner {
   my ($self) = assertNumArgs(1, @_);
 
-  my $dmtestRun = $self->runTests($self->{dmtestName});
-  my $hashes = $self->treeToHashes($dmtestRun);
+  $self->runTests($self->{dmtestName});
+
+  # Get results from the database via 'list' command (more reliable than parsing stdout).
+  my $dmtestList = $self->listTests($self->{dmtestName});
+  my $hashes = $self->treeToHashes($dmtestList);
   my @tests = $self->hashesToTests($hashes, "");
   my $lastError;
   # After all the tests have run, we will produce a FAILURE message
