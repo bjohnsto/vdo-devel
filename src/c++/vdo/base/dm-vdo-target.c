@@ -13,6 +13,7 @@
 #include <linux/module.h>
 #include <linux/mutex.h>
 #include <linux/spinlock.h>
+#include <linux/uuid.h>
 #ifdef INTERNAL
 #include "linux/blkdev.h"
 #include <linux/fs.h>
@@ -179,6 +180,8 @@ static const char * const ADMIN_PHASE_NAMES[] = {
 
 /* If we bump this, update the arrays below */
 #define TABLE_VERSION 4
+
+#define CAPACITY_VERSION 1
 
 /* arrays for handling different table versions */
 static const u8 REQUIRED_ARGC[] = { 10, 12, 9, 7, 6 };
@@ -1390,6 +1393,227 @@ static int vdo_message(struct dm_target *ti, unsigned int argc, char **argv,
 	vdo_unregister_thread_device_id();
 	vdo_unregister_allocating_thread();
 	return result;
+}
+
+/**
+ * parse_capacity_args() - Parse the arguments for a capacity message.
+ * @argc: The number of arguments.
+ * @argv: The arguments (logical_blocks, physical_blocks, slab_blocks, index_memory, index_sparse).
+ * @vdo_config: The vdo config to populate.
+ * @index_config: The index config to populate.
+ * @reason: A pointer to store an error reason string on failure.
+ *
+ * Return: VDO_SUCCESS or -EINVAL.
+ */
+static int parse_capacity_args(unsigned int argc, char **argv,
+			       struct vdo_config *vdo_config,
+			       struct index_config *index_config,
+			       const char **reason)
+{
+	int result;
+	u64 logical_blocks, physical_blocks;
+	block_count_t slab_blocks;
+	uds_memory_config_size_t index_memory;
+	bool index_sparse;
+
+	if (argc != 5) {
+		*reason = "capacity message requires 5 arguments";
+		return -EINVAL;
+	}
+
+	if (kstrtoull(argv[0], 10, &logical_blocks) ||
+	    kstrtoull(argv[1], 10, &physical_blocks)) {
+		*reason = "invalid logical or physical block count";
+		return -EINVAL;
+	}
+
+	if (logical_blocks > MAXIMUM_VDO_LOGICAL_BLOCKS) {
+		*reason = "logical block count exceeds the maximum";
+		return -EINVAL;
+	}
+
+	if (physical_blocks > MAXIMUM_VDO_PHYSICAL_BLOCKS) {
+		*reason = "physical block count exceeds the maximum";
+		return -EINVAL;
+	}
+
+	result = parse_slab_size(argv[2], &slab_blocks);
+	if (result != VDO_SUCCESS) {
+		*reason = "invalid slab size";
+		return result;
+	}
+
+	result = parse_memory(argv[3], &index_memory);
+	if (result != VDO_SUCCESS) {
+		*reason = "invalid index memory size";
+		return result;
+	}
+
+	result = parse_bool(argv[4], "on", "off", &index_sparse);
+	if (result != VDO_SUCCESS) {
+		*reason = "invalid index sparse value, expected 'on' or 'off'";
+		return result;
+	}
+
+	*vdo_config = (struct vdo_config) {
+		.logical_blocks        = logical_blocks,
+		.physical_blocks       = physical_blocks,
+		.slab_size             = slab_blocks,
+		.slab_journal_blocks   = DEFAULT_VDO_SLAB_JOURNAL_SIZE,
+		.recovery_journal_size = DEFAULT_VDO_RECOVERY_JOURNAL_SIZE,
+	};
+
+	*index_config = (struct index_config) {
+		.mem = index_memory,
+		.sparse = index_sparse,
+	};
+
+	return VDO_SUCCESS;
+}
+
+/**
+ * write_capacity_error() - Write an error response for a capacity message.
+ * @result: The VDO error code.
+ * @reason: A human-readable error description.
+ * @buf: The result buffer.
+ * @maxlen: The buffer size.
+ */
+static void write_capacity_error(int result, const char *reason,
+				 char *buf, unsigned int maxlen)
+{
+	snprintf(buf, maxlen,
+		 "{ version : %u, error : %d, reason : \"%s\" }",
+		 CAPACITY_VERSION, result, reason);
+}
+
+/**
+ * write_capacity_result() - Write a successful capacity response.
+ * @logical_blocks: The logical block count.
+ * @data_blocks: The number of physical data blocks available.
+ * @max_data_blocks: The maximum possible data blocks.
+ * @slab_count: The number of slabs.
+ * @max_slab_count: The maximum possible slab count.
+ * @buf: The result buffer.
+ * @maxlen: The buffer size.
+ */
+static void write_capacity_result(block_count_t logical_blocks,
+				  block_count_t data_blocks,
+				  block_count_t max_data_blocks,
+				  slab_count_t slab_count,
+				  slab_count_t max_slab_count,
+				  char *buf, unsigned int maxlen)
+{
+	snprintf(buf, maxlen,
+		 "{ version : %u, "
+		 "logical_blocks : %llu, "
+		 "data_blocks : %llu, "
+		 "max_data_blocks : %llu, "
+		 "slab_count : %u, "
+		 "max_slab_count : %u }",
+		 CAPACITY_VERSION,
+		 (unsigned long long)logical_blocks,
+		 (unsigned long long)data_blocks,
+		 (unsigned long long)max_data_blocks,
+		 slab_count,
+		 max_slab_count);
+}
+
+static int vdo_deviceless_message(unsigned int argc, char **argv,
+				  char *result_buffer, unsigned int maxlen)
+{
+	int result;
+	struct vdo_config vdo_config;
+	struct index_config index_config;
+	struct volume_geometry *geometry;
+	struct vdo_component_states *states;
+	struct slab_config *slab_config;
+	slab_count_t slab_count;
+	block_count_t data_blocks;
+	block_count_t logical_blocks;
+	const char *reason;
+	uuid_t uuid;
+
+	if ((argc < 1) || strcasecmp(argv[0], "capacity") != 0)
+		return -EINVAL;
+
+	result = parse_capacity_args(argc - 1, argv + 1, &vdo_config, &index_config,
+				     &reason);
+	if (result != VDO_SUCCESS) {
+		write_capacity_error(result, reason, result_buffer, maxlen);
+		return 1;
+	}
+
+	result = vdo_allocate(1, __func__, &geometry);
+	if (result != VDO_SUCCESS)
+		return vdo_status_to_errno(result);
+
+	uuid_gen(&uuid);
+	result = vdo_initialize_volume_geometry(0, &uuid, &index_config, geometry);
+	if (result != VDO_SUCCESS) {
+		vdo_free(geometry);
+		return vdo_status_to_errno(result);
+	}
+
+	result = vdo_allocate(1, __func__, &states);
+	if (result != VDO_SUCCESS) {
+		vdo_free(geometry);
+		return vdo_status_to_errno(result);
+	}
+
+	result = vdo_initialize_component_states(&vdo_config, geometry,
+						 geometry->nonce, states);
+	if (result == VDO_NO_SPACE) {
+		char errmsg[100];
+		block_count_t necessary_size = 1 +
+			vdo_get_data_region_start(*geometry) +
+			DEFAULT_VDO_BLOCK_MAP_TREE_ROOT_COUNT +
+			DEFAULT_VDO_RECOVERY_JOURNAL_SIZE +
+			VDO_SLAB_SUMMARY_BLOCKS +
+			vdo_config.slab_size;
+
+		snprintf(errmsg, sizeof(errmsg),
+			 "Not enough space, minimum %llu blocks required",
+			 (unsigned long long)necessary_size);
+		write_capacity_error(result, errmsg, result_buffer, maxlen);
+		vdo_free(states);
+		vdo_free(geometry);
+		return 1;
+	}
+
+	if (result == VDO_TOO_MANY_SLABS) {
+		write_capacity_error(result,
+				     "Reduce the device size or increase the slab size",
+				     result_buffer, maxlen);
+		vdo_free(states);
+		vdo_free(geometry);
+		return 1;
+	}
+
+	if (result != VDO_SUCCESS) {
+		vdo_free(states);
+		vdo_free(geometry);
+		return vdo_status_to_errno(result);
+	}
+
+	slab_config = &states->slab_depot.slab_config;
+	slab_count = vdo_compute_slab_count(states->slab_depot.first_block,
+					    states->slab_depot.last_block,
+					    ilog2(vdo_config.slab_size));
+	data_blocks = (block_count_t)slab_count * slab_config->data_blocks;
+	logical_blocks = vdo_config.logical_blocks;
+
+	if (logical_blocks == 0)
+		logical_blocks = vdo_compute_logical_blocks(
+			data_blocks, DEFAULT_VDO_BLOCK_MAP_TREE_ROOT_COUNT);
+
+	write_capacity_result(logical_blocks, data_blocks,
+			      (block_count_t)MAX_VDO_SLABS * slab_config->data_blocks,
+			      slab_count, MAX_VDO_SLABS,
+			      result_buffer, maxlen);
+	vdo_uninitialize_layout(&states->layout);
+	vdo_free(states);
+	vdo_free(geometry);
+	return 1;
 }
 
 #ifdef __KERNEL__
@@ -3191,7 +3415,7 @@ static void vdo_resume(struct dm_target *ti)
 static struct target_type vdo_target_bio = {
 	.features = DM_TARGET_SINGLETON,
 	.name = "vdo",
-	.version = { 9, 2, 0 },
+	.version = { 9, 3, 0 },
 #ifdef __KERNEL__
 	.module = THIS_MODULE,
 #endif /* __KERNEL__ */
@@ -3203,6 +3427,7 @@ static struct target_type vdo_target_bio = {
 #endif /* __KERNEL__ */
 	.map = vdo_map_bio,
 	.message = vdo_message,
+	.deviceless_message = vdo_deviceless_message,
 #ifdef __KERNEL__
 	.status = vdo_status,
 #endif /* __KERNEL__ */

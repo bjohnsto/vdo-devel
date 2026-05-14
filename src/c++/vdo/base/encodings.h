@@ -902,6 +902,9 @@ block_count_t __must_check vdo_compute_new_forest_pages(root_count_t root_count,
 							block_count_t entries,
 							struct boundary *new_sizes);
 
+block_count_t vdo_compute_logical_blocks(block_count_t data_blocks,
+						 root_count_t root_count);
+
 /**
  * vdo_pack_recovery_journal_entry() - Return the packed, on-disk representation of a recovery
  *                                     journal entry.

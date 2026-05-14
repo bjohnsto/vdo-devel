@@ -516,6 +516,42 @@ block_count_t vdo_compute_new_forest_pages(root_count_t root_count,
 }
 
 /**
+ * vdo_compute_logical_blocks() - Compute the default logical size for a VDO volume.
+ * @data_blocks: The number of physical data blocks available.
+ * @root_count: The number of block map trees.
+ *
+ * Computes the number of logical blocks a VDO can address by subtracting the approximate block
+ * map overhead from the available data blocks.
+ *
+ * Return: The default number of logical blocks.
+ */
+block_count_t vdo_compute_logical_blocks(block_count_t data_blocks,
+						 root_count_t root_count)
+{
+	block_count_t approximate_non_leaves, forest_size;
+	page_count_t approximate_leaves;
+	struct boundary new_sizes;
+
+	approximate_non_leaves =
+		vdo_compute_new_forest_pages(root_count, NULL, data_blocks, &new_sizes);
+
+	/*
+	 * Exclude the tree roots since those aren't allocated from slabs, and also exclude the
+	 * super-roots, which only exist in memory.
+	 */
+	approximate_non_leaves -=
+		root_count * (new_sizes.levels[VDO_BLOCK_MAP_TREE_HEIGHT - 2] +
+			      new_sizes.levels[VDO_BLOCK_MAP_TREE_HEIGHT - 1]);
+
+	approximate_leaves =
+		vdo_compute_block_map_page_count(data_blocks - approximate_non_leaves);
+
+	forest_size = approximate_non_leaves + approximate_leaves;
+
+	return data_blocks - forest_size;
+}
+
+/**
  * encode_recovery_journal_state_7_0() - Encode the state of a recovery journal.
  * @buffer: A buffer to store the encoding.
  * @offset: The offset in the buffer at which to encode.
