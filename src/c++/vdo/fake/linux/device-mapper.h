@@ -92,6 +92,9 @@ typedef void (*dm_status_fn) (struct dm_target *ti, status_type_t status_type,
 typedef int (*dm_message_fn) (struct dm_target *ti, unsigned argc, char **argv,
 			      char *result, unsigned maxlen);
 
+typedef int (*dm_deviceless_message_fn) (unsigned int argc, char **argv,
+			      char *result, unsigned int maxlen);
+
 typedef int (*dm_prepare_ioctl_fn) (struct dm_target *ti, struct block_device **bdev);
 
 #ifdef CONFIG_BLK_DEV_ZONED
@@ -310,6 +313,7 @@ struct target_type {
 	dm_resume_fn resume;
 	dm_status_fn status;
 	dm_message_fn message;
+	dm_deviceless_message_fn deviceless_message;
 	dm_prepare_ioctl_fn prepare_ioctl;
 	dm_report_zones_fn report_zones;
 	dm_busy_fn busy;

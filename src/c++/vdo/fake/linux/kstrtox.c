@@ -142,12 +142,13 @@ int kstrtoull(const char *string, unsigned int base, uint64_t *result)
     return -EINVAL;
   }
 
+  errno = 0;
   tmp = strtoull(string, &endPtr, base);
-  if (tmp == 0) {
+  if ((endPtr == string) || (*endPtr != '\0' && *endPtr != '\n')) {
     return -EINVAL;
   }
 
-  if ((errno == ERANGE) || (endPtr == NULL) || (tmp != (uint64_t) tmp)) {
+  if ((errno == ERANGE) || (tmp != (uint64_t) tmp)) {
     return -ERANGE;
   }
 
